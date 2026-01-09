@@ -2,1423 +2,609 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WikiGraph - Google Site Ready</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>FlowBoard</title>
     
-    <!-- Google Fonts: Prompt -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- --- PWA & Mobile Settings --- -->
+    <!-- Android / Chrome -->
+    <meta name="theme-color" content="#2563eb">
+    <meta name="mobile-web-app-capable" content="yes">
     
+    <!-- iOS / Safari -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="FlowBoard">
+    
+    <!-- Icons -->
+    <link rel="icon" type="image/jpeg" href="https://live.staticflickr.com/65535/54707259194_d205400eeb_w.jpg">
+    <link rel="apple-touch-icon" href="https://live.staticflickr.com/65535/54707259194_d205400eeb_w.jpg">
+    
+    <!-- Web App Manifest (Embedded Data URI) -->
+    <link rel="manifest" href='data:application/manifest+json,{"name":"FlowBoard","short_name":"FlowBoard","start_url":".","display":"standalone","background_color":"#f9fafb","theme_color":"#2563eb","description":"FlowBoard - Your Personal Kanban & Whiteboard","icons":[{"src":"https://live.staticflickr.com/65535/54707259194_d205400eeb_w.jpg","sizes":"192x192","type":"image/jpeg"},{"src":"https://live.staticflickr.com/65535/54707259194_d205400eeb_w.jpg","sizes":"512x512","type":"image/jpeg"}]}'>
+
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['Prompt', 'sans-serif'],
-                    },
-                    animation: {
-                        'fade-in': 'fadeIn 0.3s ease-in-out',
-                        'fade-in-up': 'fadeInUp 0.3s ease-out',
-                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-                    },
-                    keyframes: {
-                        fadeIn: {
-                            '0%': { opacity: '0' },
-                            '100%': { opacity: '1' },
-                        },
-                        fadeInUp: {
-                            '0%': { opacity: '0', transform: 'translateY(10px)' },
-                            '100%': { opacity: '1', transform: 'translateY(0)' },
-                        }
-                    }
-                }
-            }
-        }
-    </script>
-
-    <!-- React & ReactDOM -->
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     
-    <!-- Babel for JSX -->
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-
-    <!-- Firebase SDKs -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken, GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot, query, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
-        window.firebaseModules = { 
-            initializeApp, 
-            getAuth, 
-            signInAnonymously, 
-            onAuthStateChanged, 
-            signInWithCustomToken, 
-            GoogleAuthProvider, 
-            signInWithPopup,
-            createUserWithEmailAndPassword,
-            signInWithEmailAndPassword,
-            signOut,
-            getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot, query, getDocs
-        };
-    </script>
-
+    <!-- Google Fonts (Sarabun for Thai) -->
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;700&display=swap" rel="stylesheet">
+    
     <style>
-        /* Custom Scrollbar */
-        .custom-scrollbar::-webkit-scrollbar {
-            width: 4px;
+        body { 
+            font-family: 'Sarabun', sans-serif; 
+            overscroll-behavior: none; 
         }
-        .custom-scrollbar::-webkit-scrollbar-track {
-            background: transparent;
+        .canvas-container {
+            touch-action: none; 
         }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-            background-color: #cbd5e1;
-            border-radius: 20px;
-        }
-        body {
-            overflow: hidden; 
-        }
-        .status-badge {
-            font-size: 0.7rem;
-            display: flex;
-            align-items: center;
-            gap: 4px;
-            padding: 2px 8px;
-            border-radius: 12px;
-            font-weight: 500;
-        }
-        .status-cloud { background-color: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; }
-        .status-local { background-color: #f1f5f9; color: #64748b; border: 1px solid #cbd5e1; }
-        .status-saving { color: #d97706; }
-        .status-error { color: #ef4444; background-color: #fee2e2; border: 1px solid #fca5a5; padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; display: flex; align-items: center; gap: 4px; }
-        .cloud-status {
-            font-size: 0.75rem;
-            color: #64748b;
-            display: flex;
-            align-items: center;
-            gap: 4px;
-        }
-        .cloud-status.saving { color: #d97706; }
-        .cloud-status.saved { color: #10b981; }
-        .cloud-status.error { color: #ef4444; }
+        .custom-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scroll::-webkit-scrollbar-track { background: transparent; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
+        .custom-scroll::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
     </style>
+
+    <script type="importmap">
+    {
+      "imports": {
+        "react": "https://esm.sh/react@18.2.0",
+        "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
+        "lucide-react": "https://esm.sh/lucide-react@0.344.0",
+        "firebase/app": "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js",
+        "firebase/auth": "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js",
+        "firebase/firestore": "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js"
+      }
+    }
+    </script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 </head>
-<body>
-    <div id="root"></div>
+<body class="bg-gray-50 h-screen w-screen overflow-hidden">
+    <div id="root" class="h-full w-full"></div>
 
-    <script type="text/babel">
-        const { useState, useEffect, useRef, useMemo, useCallback } = React;
+    <script type="text/babel" data-type="module">
+        import React, { useState, useRef, useEffect, useMemo } from 'react';
+        import { createRoot } from 'react-dom/client';
+        import { 
+            Plus, StickyNote, Type, Image as ImageIcon, Link as LinkIcon, 
+            Move, ZoomIn, ZoomOut, Maximize, X, Trash2, CheckCircle, 
+            Clock, AlertCircle, ArrowLeft, Book, MoreVertical, Edit2, 
+            FolderOpen, PenTool, Undo, Redo, Calendar as CalendarIcon, 
+            ChevronLeft, ChevronRight, Filter, LogOut, User, Loader2, Mail,
+            DownloadCloud
+        } from 'lucide-react';
 
-        // ==========================================
-        //  CONFIG
-        // ==========================================
-        
-        const USER_FIREBASE_CONFIG = {
-          apiKey: "AIzaSyChLR9pMmY1QCgD2HjJ0GjTGS5mx6tG0N8",
-          authDomain: "lnwlawyer.firebaseapp.com",
-          projectId: "lnwlawyer",
-          storageBucket: "lnwlawyer.firebasestorage.app",
-          messagingSenderId: "105328800542",
-          appId: "1:105328800542:web:7be90ebd1937e98a548f0f",
-          measurementId: "G-RN817Q6CXT"
+        import { initializeApp } from 'firebase/app';
+        import { getAuth, signInWithPopup, GoogleAuthProvider, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'firebase/auth';
+        import { getFirestore, collection, doc, setDoc, addDoc, deleteDoc, onSnapshot, serverTimestamp, getDoc, Timestamp } from 'firebase/firestore';
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyChLR9pMmY1QCgD2HjJ0GjTGS5mx6tG0N8",
+            authDomain: "lnwlawyer.firebaseapp.com",
+            projectId: "lnwlawyer",
+            storageBucket: "lnwlawyer.firebasestorage.app",
+            messagingSenderId: "105328800542",
+            appId: "1:105328800542:web:7be90ebd1937e98a548f0f",
+            measurementId: "G-RN817Q6CXT"
         };
 
-        // ==========================================
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const rawAppId = typeof __app_id !== 'undefined' ? __app_id : 'flowboard-v1';
+        const appId = rawAppId.replace(/[^a-zA-Z0-9_-]/g, '_');
 
-        // --- ICONS ---
-        const IconBase = ({ children, size = 24, className = "", ...props }) => (
-            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
-                {children}
-            </svg>
-        );
-
-        // Define Icons
-        const Search = (props) => <IconBase {...props}><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></IconBase>;
-        const Plus = (props) => <IconBase {...props}><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></IconBase>;
-        const FileText = (props) => <IconBase {...props}><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline></IconBase>;
-        const Share2 = (props) => <IconBase {...props}><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></IconBase>;
-        const Trash2 = (props) => <IconBase {...props}><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></IconBase>;
-        const Maximize2 = (props) => <IconBase {...props}><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></IconBase>;
-        const Minimize2 = (props) => <IconBase {...props}><polyline points="4 14 10 14 10 20"></polyline><polyline points="20 10 14 10 14 4"></polyline><line x1="14" y1="10" x2="21" y2="3"></line><line x1="3" y1="21" x2="10" y2="14"></line></IconBase>;
-        const Network = (props) => <IconBase {...props}><rect x="16" y="16" width="6" height="6" rx="1"></rect><rect x="2" y="16" width="6" height="6" rx="1"></rect><rect x="9" y="2" width="6" height="6" rx="1"></rect><path d="M5 16v-3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3"></path><path d="M12 12V8"></path></IconBase>;
-        const Book = (props) => <IconBase {...props}><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></IconBase>;
-        const Library = (props) => <IconBase {...props}><path d="m16 6 4 14"></path><path d="M12 6v14"></path><path d="M8 8v12"></path><path d="M4 4v16"></path></IconBase>;
-        const FolderPlus = (props) => <IconBase {...props}><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path><line x1="12" y1="11" x2="12" y2="17"></line><line x1="9" y1="14" x2="15" y2="14"></line></IconBase>;
-        const Check = (props) => <IconBase {...props}><polyline points="20 6 9 17 4 12"></polyline></IconBase>;
-        const X = (props) => <IconBase {...props}><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></IconBase>;
-        const PenTool = (props) => <IconBase {...props}><path d="m12 19 7-7 3 3-7 7-3-3z"></path><path d="m18 13-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path><path d="m2 2 7.586 7.586"></path><circle cx="11" cy="11" r="2"></circle></IconBase>;
-        const MousePointer2 = (props) => <IconBase {...props}><path d="m12 6 2-2h6v6l-2 2"></path><path d="m22 22-8.5-8.5"></path><path d="M14.5 9.5 7.02 16.98c-.68.68-.69 1.77-.02 2.47l.03.03c.69.69 1.79.66 2.47-.02L16.98 12"></path></IconBase>;
-        const RotateCcw = (props) => <IconBase {...props}><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></IconBase>;
-        const Palette = (props) => <IconBase {...props}><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"></circle><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"></circle><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"></circle><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"></circle><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"></path></IconBase>;
-        const Cloud = (props) => <IconBase {...props}><path d="M17.5 19c0-3.037-2.463-5.5-5.5-5.5S6.5 15.963 6.5 19"></path><path d="M17.5 19c0-3.037-2.463-5.5-5.5-5.5S6.5 15.963 6.5 19"></path><path d="M12 13.5V6"></path><path d="M12 6 9.5 8.5"></path><path d="M12 6l2.5 2.5"></path></IconBase>;
-        const CloudCheck = (props) => <IconBase {...props}><path d="M12 21a6 6 0 1 0 0-12 6 6 0 0 0 0 12Z"></path><path d="m9 10 2 2 4-4"></path></IconBase>;
-        const HardDrive = (props) => <IconBase {...props}><line x1="22" y1="12" x2="2" y2="12"></line><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"></path><line x1="6" y1="16" x2="6.01" y2="16"></line><line x1="10" y1="16" x2="10.01" y2="16"></line></IconBase>;
-        const User = (props) => <IconBase {...props}><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></IconBase>;
-        const AlertCircle = (props) => <IconBase {...props}><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></IconBase>;
-        const LogOut = (props) => <IconBase {...props}><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></IconBase>;
-        const Mail = (props) => <IconBase {...props}><rect width="20" height="16" x="2" y="4" rx="2"></rect><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path></IconBase>;
-        const RefreshCw = (props) => <IconBase {...props}><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path><path d="M21 3v5h-5"></path><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path><path d="M8 16H3v5"></path></IconBase>;
-
-        // --- CONSTANTS ---
-        const INITIAL_NOTEBOOKS = [
-          { id: 'nb_general', name: 'ทั่วไป' },
-          { id: 'nb_ideas', name: 'Project Ideas' }
-        ];
-        
-        const INITIAL_NOTES = [
-          {
-            id: '1',
-            title: 'Welcome to WikiGraph',
-            content: 'ยินดีต้อนรับสู่พื้นที่จดบันทึกแบบ Hybrid!\n\nสถานะการบันทึกของคุณ:\n- ถ้ามีไอคอน ☁️ สีเขียว แสดงว่าบันทึกบน Cloud (ซิงค์ได้)\n- ถ้ามีไอคอน 💾 สีเทา แสดงว่าบันทึกในเครื่องนี้ (Offline Mode)\n\nถ้าขึ้น "Save Error" โปรดตรวจสอบ Firestore Rules ของคุณ',
-            date: new Date().toISOString().split('T')[0],
-            notebookId: 'nb_general',
-            textColor: '#1e293b'
-          }
-        ];
-
-        const COLORS = [
-          { id: 'slate', value: '#1e293b', label: 'Black' },
-          { id: 'red', value: '#ef4444', label: 'Red' },
-          { id: 'blue', value: '#2563eb', label: 'Blue' },
-          { id: 'green', value: '#16a34a', label: 'Green' },
-          { id: 'purple', value: '#9333ea', label: 'Purple' },
-          { id: 'orange', value: '#f97316', label: 'Orange' },
-        ];
-
-        // --- UTILS ---
-        const generateId = () => Math.random().toString(36).substr(2, 9);
-
-        const extractLinks = (content) => {
-          const regex = /\[\[(.*?)\]\]/g;
-          const links = [];
-          let match;
-          while ((match = regex.exec(content)) !== null) {
-            links.push(match[1]);
-          }
-          return links;
+        const getSvgPathFromStroke = (stroke) => {
+            if (!stroke || !stroke.length) return "";
+            return `M ${stroke.map(p => `${p.x},${p.y}`).join(" L ")}`;
         };
+        const getTouchDistance = (touches) => Math.hypot(touches[0].clientX - touches[1].clientX, touches[0].clientY - touches[1].clientY);
 
-        // --- COMPONENTS ---
-        
-        const AuthPage = ({ onGuestLogin, error: parentError }) => {
+        const AuthScreen = ({ onLogin }) => {
+            const [isLogin, setIsLogin] = useState(true);
             const [email, setEmail] = useState('');
             const [password, setPassword] = useState('');
-            const [isRegistering, setIsRegistering] = useState(false);
-            const [error, setError] = useState(parentError || '');
+            const [error, setError] = useState('');
             const [loading, setLoading] = useState(false);
 
-            useEffect(() => { if(parentError) setError(parentError); }, [parentError]);
-
-            const handleGoogleLogin = async () => {
-                setLoading(true);
-                setError('');
-                try {
-                    const { getAuth, signInWithPopup, GoogleAuthProvider } = window.firebaseModules;
-                    const auth = getAuth();
-                    const provider = new GoogleAuthProvider();
-                    await signInWithPopup(auth, provider);
-                } catch (e) {
-                    console.error(e);
-                    setError(e.message || 'Login failed');
-                    setLoading(false);
-                }
-            };
-
-            const handleEmailAuth = async (e) => {
-                e.preventDefault();
-                setLoading(true);
-                setError('');
-                const { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword } = window.firebaseModules;
-                const auth = getAuth();
-                
-                try {
-                    if (isRegistering) {
-                        await createUserWithEmailAndPassword(auth, email, password);
-                    } else {
-                        await signInWithEmailAndPassword(auth, email, password);
-                    }
-                } catch (e) {
-                    console.error(e);
-                    // Translate common errors
-                    let msg = e.message;
-                    if (e.code === 'auth/wrong-password') msg = 'รหัสผ่านไม่ถูกต้อง';
-                    if (e.code === 'auth/user-not-found') msg = 'ไม่พบผู้ใช้นี้';
-                    if (e.code === 'auth/email-already-in-use') msg = 'อีเมลนี้ถูกใช้ไปแล้ว';
-                    setError(msg || 'Authentication failed');
-                    setLoading(false);
-                }
-            };
+            const handleGoogleLogin = async () => { setLoading(true); setError(''); try { await signInWithPopup(auth, new GoogleAuthProvider()); } catch (err) { setError(err.message); setLoading(false); } };
+            const handleEmailAuth = async (e) => { e.preventDefault(); setLoading(true); setError(''); try { if (isLogin) await signInWithEmailAndPassword(auth, email, password); else await createUserWithEmailAndPassword(auth, email, password); } catch (err) { setError(err.message); setLoading(false); } };
 
             return (
-                <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
-                    <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md border border-slate-100">
-                        <div className="text-center mb-8">
-                            <div className="flex items-center justify-center gap-2 mb-2">
-                                <Network size={40} className="text-blue-600" />
-                            </div>
-                            <h1 className="text-2xl font-bold text-slate-800">WikiGraph</h1>
-                            <p className="text-slate-500 text-sm mt-1">เข้าสู่ระบบเพื่อซิงค์ข้อมูลของคุณ</p>
-                        </div>
-
-                        {error && (
-                            <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-600 text-sm rounded-lg flex items-center gap-2">
-                                <AlertCircle size={16} /> {error}
-                            </div>
-                        )}
-
-                        <button 
-                            onClick={handleGoogleLogin}
-                            disabled={loading}
-                            className="w-full bg-white border border-slate-200 text-slate-700 font-medium py-2.5 px-4 rounded-lg flex items-center justify-center gap-2 hover:bg-slate-50 transition-colors mb-4 relative"
-                        >
-                            Google Login
-                        </button>
-
-                        <div className="relative my-6">
-                            <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-slate-200"></div></div>
-                            <div className="relative flex justify-center text-sm"><span className="px-2 bg-white text-slate-400">หรือใช้อีเมล</span></div>
-                        </div>
-
+                <div className="h-full w-full bg-gray-50 flex items-center justify-center p-4 font-sans overflow-y-auto custom-scroll">
+                    <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border border-gray-100 my-auto">
+                        <div className="text-center mb-8"><div className="w-16 h-16 bg-blue-100 rounded-2xl flex items-center justify-center mx-auto mb-4 text-blue-600"><Move className="w-10 h-10" /></div><h1 className="text-2xl font-bold text-gray-800">ยินดีต้อนรับสู่ FlowBoard</h1><p className="text-gray-500 mt-2">พื้นที่สำหรับความคิดสร้างสรรค์ของคุณ</p></div>
+                        {error && <div className="bg-red-50 text-red-600 p-3 rounded-lg mb-4 text-sm flex items-center gap-2"><AlertCircle className="w-4 h-4" /> {error}</div>}
                         <form onSubmit={handleEmailAuth} className="space-y-4">
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1">Email</label>
-                                <div className="relative">
-                                    <Mail className="absolute left-3 top-2.5 text-slate-400" size={18} />
-                                    <input 
-                                        type="email" 
-                                        required
-                                        className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-                                        placeholder="your@email.com"
-                                        value={email}
-                                        onChange={e => setEmail(e.target.value)}
-                                    />
-                                </div>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1">Password</label>
-                                <input 
-                                    type="password" 
-                                    required
-                                    className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-                                    placeholder="••••••••"
-                                    value={password}
-                                    onChange={e => setPassword(e.target.value)}
-                                />
-                            </div>
-                            <button 
-                                type="submit" 
-                                disabled={loading}
-                                className="w-full bg-blue-600 text-white font-medium py-2.5 px-4 rounded-lg hover:bg-blue-700 transition-colors shadow-sm shadow-blue-200"
-                            >
-                                {loading ? 'Processing...' : (isRegistering ? 'Create Account' : 'Sign In')}
-                            </button>
+                            <div><label className="block text-sm font-medium text-gray-700 mb-1">อีเมล</label><input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className="w-full p-3 border rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all" placeholder="name@example.com" /></div>
+                            <div><label className="block text-sm font-medium text-gray-700 mb-1">รหัสผ่าน</label><input type="password" required value={password} onChange={(e) => setPassword(e.target.value)} className="w-full p-3 border rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all" placeholder="••••••••" /></div>
+                            <button type="submit" disabled={loading} className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition-colors flex items-center justify-center gap-2">{loading ? <Loader2 className="w-5 h-5 animate-spin" /> : (isLogin ? 'เข้าสู่ระบบ' : 'สมัครสมาชิก')}</button>
                         </form>
-
-                        <div className="mt-4 text-center text-sm">
-                            <button 
-                                onClick={() => setIsRegistering(!isRegistering)}
-                                className="text-blue-600 hover:text-blue-700 font-medium"
-                            >
-                                {isRegistering ? 'มีบัญชีอยู่แล้ว? เข้าสู่ระบบ' : 'ยังไม่มีบัญชี? สมัครสมาชิก'}
-                            </button>
-                        </div>
-
-                        <div className="mt-6 pt-6 border-t border-slate-100 text-center">
-                            <button onClick={onGuestLogin} className="text-slate-400 hover:text-slate-600 text-sm flex items-center justify-center gap-1 mx-auto">
-                                <span>ข้ามไปก่อน (ใช้งานแบบ Guest Local)</span>
-                            </button>
-                        </div>
+                        <div className="relative my-6"><div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-200"></div></div><div className="relative flex justify-center text-sm"><span className="px-2 bg-white text-gray-500">หรือ</span></div></div>
+                        <button onClick={handleGoogleLogin} disabled={loading} className="w-full bg-white border border-gray-300 text-gray-700 py-3 rounded-xl font-bold hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"><span className="text-xl font-bold text-blue-600">G</span> ดำเนินการต่อด้วย Google</button>
+                        <p className="mt-6 text-center text-sm text-gray-600">{isLogin ? "ยังไม่มีบัญชี?" : "มีบัญชีอยู่แล้ว?"}<button onClick={() => setIsLogin(!isLogin)} className="ml-1 text-blue-600 font-bold hover:underline">{isLogin ? "สมัครสมาชิก" : "เข้าสู่ระบบ"}</button></p>
                     </div>
                 </div>
             );
         };
 
-        const NoteItem = ({ note, isActive, onClick }) => (
-          <div 
-            onClick={() => onClick(note.id)}
-            className={`p-3 rounded-lg cursor-pointer transition-all mb-1 flex items-center gap-3 ${
-              isActive 
-                ? 'bg-blue-100 text-blue-900 shadow-sm' 
-                : 'hover:bg-slate-100 text-slate-700'
-            }`}
-          >
-            <div className="relative">
-                <FileText size={18} className={`flex-shrink-0 ${isActive ? 'text-blue-600' : 'text-slate-400'}`} />
-                {note.drawing && (
-                    <span className="absolute -top-1 -right-1 block w-2 h-2 bg-pink-500 rounded-full border border-white"></span>
-                )}
-            </div>
-            <div className="overflow-hidden w-full">
-              <h4 className="font-medium truncate text-sm">{note.title || 'Untitled'}</h4>
-              <p className="text-xs text-slate-400 truncate mt-0.5 opacity-80">{note.content ? note.content.slice(0, 30) : (note.drawing ? 'มีภาพวาด...' : 'Untitled Note')}</p>
-            </div>
-          </div>
-        );
+        const ConnectionLayer = ({ connections, items }) => {
+            return (
+                <svg className="absolute top-0 left-0 w-full h-full pointer-events-none z-0 overflow-visible">
+                    <defs><marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#94a3b8" /></marker></defs>
+                    {connections.map((conn) => {
+                        const fromItem = items.find((i) => i.id === conn.from); const toItem = items.find((i) => i.id === conn.to);
+                        if (!fromItem || !toItem) return null;
+                        const startX = fromItem.x + fromItem.width / 2; const startY = fromItem.y + fromItem.height / 2;
+                        const endX = toItem.x + toItem.width / 2; const endY = toItem.y + toItem.height / 2;
+                        return (<g key={conn.id}><line x1={startX} y1={startY} x2={endX} y2={endY} stroke="#94a3b8" strokeWidth="2" markerEnd="url(#arrowhead)" strokeDasharray={conn.type === 'dashed' ? "5,5" : "0"} /></g>);
+                    })}
+                </svg>
+            );
+        };
 
-        const NotebookItem = ({ notebook, isActive, onClick, count }) => (
-          <div 
-            onClick={() => onClick(notebook.id)}
-            className={`px-3 py-2 rounded-md cursor-pointer transition-all flex items-center justify-between text-sm mb-1 group ${
-              isActive 
-                ? 'bg-slate-200 text-slate-900 font-medium' 
-                : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-            }`}
-          >
-            <div className="flex items-center gap-2 overflow-hidden">
-                <Book size={16} className={isActive ? 'text-slate-700' : 'text-slate-400 group-hover:text-slate-500'} />
-                <span className="truncate">{notebook.name}</span>
-            </div>
-            {count > 0 && (
-                <span className="text-[10px] bg-slate-200 text-slate-500 px-1.5 py-0.5 rounded-full min-w-[1.25rem] text-center group-hover:bg-white">
-                    {count}
-                </span>
-            )}
-          </div>
-        );
-
-        const DrawingCanvas = ({ initialData, onSave, className, isPointerActive, penColor }) => {
-            const canvasRef = useRef(null);
-            const containerRef = useRef(null);
-            const [isDrawing, setIsDrawing] = useState(false);
-            const [context, setContext] = useState(null);
+        const CanvasItem = ({ item, isSelected, onPointerDown, onSelect, onDoubleClick }) => {
+            const getBorderColor = () => (isSelected ? 'ring-2 ring-blue-500 shadow-xl' : (item.type === 'drawing' ? '' : 'shadow-md hover:shadow-lg border-gray-200'));
+            const getStatusIcon = (status) => { switch (status) { case 'done': return <CheckCircle className="w-4 h-4 text-green-500" />; case 'doing': return <Clock className="w-4 h-4 text-amber-500" />; default: return <AlertCircle className="w-4 h-4 text-gray-400" />; } };
+            const baseStyle = { transform: `translate(${item.x}px, ${item.y}px)`, width: `${item.width}px`, height: item.type === 'note' ? `${item.width}px` : `${item.height}px` };
             
-            const setupCanvas = (canvas, imgData = null) => {
-                const dpr = window.devicePixelRatio || 1;
-                const rect = canvas.getBoundingClientRect();
-                
-                if (canvas.width !== rect.width * dpr || canvas.height !== rect.height * dpr) {
-                    canvas.width = rect.width * dpr;
-                    canvas.height = rect.height * dpr;
-                    
-                    const ctx = canvas.getContext('2d');
-                    ctx.scale(dpr, dpr);
-                    ctx.lineCap = 'round';
-                    ctx.lineJoin = 'round';
-                    ctx.lineWidth = 3;
-                    ctx.strokeStyle = penColor; 
-                    ctx.globalAlpha = 0.8;
-                    setContext(ctx);
-                    
-                    const sourceData = imgData || initialData;
-                    if (sourceData) {
-                        const img = new Image();
-                        img.onload = () => {
-                            ctx.drawImage(img, 0, 0, rect.width, rect.height);
-                        };
-                        img.src = sourceData;
-                    }
-                } else if (!context) {
-                    const ctx = canvas.getContext('2d');
-                    ctx.scale(dpr, dpr);
-                    ctx.lineCap = 'round';
-                    ctx.lineJoin = 'round';
-                    ctx.lineWidth = 3;
-                    ctx.strokeStyle = penColor; 
-                    ctx.globalAlpha = 0.8;
-                    setContext(ctx);
-                }
-            };
-
-            useEffect(() => {
-                if (context) {
-                    context.strokeStyle = penColor;
-                }
-            }, [penColor, context]);
-
-            useEffect(() => {
-                const canvas = canvasRef.current;
-                if (!canvas) return;
-
-                setupCanvas(canvas);
-
-                const resizeObserver = new ResizeObserver(() => {
-                     setupCanvas(canvas, initialData);
-                });
-                
-                resizeObserver.observe(canvas);
-
-                return () => resizeObserver.disconnect();
-            }, [initialData]);
-
-            const startDrawing = ({ nativeEvent }) => {
-                if (!context || !isPointerActive) return;
-                const { offsetX, offsetY } = getCoordinates(nativeEvent);
-                context.beginPath();
-                context.moveTo(offsetX, offsetY);
-                setIsDrawing(true);
-            };
-
-            const draw = ({ nativeEvent }) => {
-                if (!isDrawing || !context || !isPointerActive) return;
-                const { offsetX, offsetY } = getCoordinates(nativeEvent);
-                context.lineTo(offsetX, offsetY);
-                context.stroke();
-            };
-
-            const stopDrawing = () => {
-                if (!isDrawing) return;
-                context.closePath();
-                setIsDrawing(false);
-                if (onSave && canvasRef.current) {
-                    onSave(canvasRef.current.toDataURL());
-                }
-            };
-
-            const getCoordinates = (event) => {
-                const canvas = canvasRef.current;
-                if (!canvas) return { offsetX: 0, offsetY: 0 };
-                const rect = canvas.getBoundingClientRect();
-
-                if (event.changedTouches && event.changedTouches.length > 0) {
-                    return {
-                        offsetX: event.changedTouches[0].clientX - rect.left,
-                        offsetY: event.changedTouches[0].clientY - rect.top
-                    };
-                }
-                
-                return {
-                    offsetX: event.clientX - rect.left,
-                    offsetY: event.clientY - rect.top
-                };
-            };
-
-            const clearCanvas = () => {
-                if (context && canvasRef.current) {
-                    const rect = canvasRef.current.getBoundingClientRect();
-                    context.clearRect(0, 0, rect.width, rect.height);
-                    onSave(null); 
-                }
-            };
-
+            if (item.type === 'drawing') {
+                return (
+                    <div className={`absolute cursor-grab active:cursor-grabbing select-none ${isSelected ? 'z-20' : 'z-10'}`} style={{...baseStyle, pointerEvents: 'all'}} onPointerDown={(e) => onPointerDown(e, item)} onClick={(e) => { e.stopPropagation(); onSelect(item.id); }} onDoubleClick={() => onDoubleClick(item)}>
+                        <div className={`w-full h-full ${isSelected ? 'ring-2 ring-blue-500 ring-offset-4 rounded-sm' : ''}`}><svg width="100%" height="100%" viewBox={`0 0 ${item.width} ${item.height}`} className="overflow-visible"><path d={getSvgPathFromStroke(item.points)} stroke={item.color || "#000"} strokeWidth="4" fill="none" strokeLinecap="round" strokeLinejoin="round" /></svg></div>
+                    </div>
+                );
+            }
+            if (item.type === 'note') {
+                return (
+                    <div className={`absolute cursor-grab active:cursor-grabbing p-4 transition-shadow select-none ${item.color} ${isSelected ? 'ring-2 ring-blue-500 z-20' : 'z-10'}`} style={baseStyle} onPointerDown={(e) => onPointerDown(e, item)} onClick={(e) => { e.stopPropagation(); onSelect(item.id); }} onDoubleClick={() => onDoubleClick(item)}>
+                        <div className="font-handwriting text-lg leading-tight text-gray-800 break-words h-full overflow-hidden pointer-events-none">{item.content || "โน้ตใหม่..."}</div>
+                    </div>
+                );
+            }
             return (
-                <div ref={containerRef} className={`relative ${className} overflow-hidden touch-none`}>
-                    <canvas
-                        ref={canvasRef}
-                        className="w-full h-full block"
-                        style={{ cursor: isPointerActive ? 'crosshair' : 'default' }}
-                        onMouseDown={startDrawing}
-                        onMouseMove={draw}
-                        onMouseUp={stopDrawing}
-                        onMouseLeave={stopDrawing}
-                        onTouchStart={(e) => {
-                            if (isPointerActive) {
-                               if(e.cancelable) e.preventDefault(); 
-                               startDrawing(e);
-                            }
-                        }}
-                        onTouchMove={(e) => {
-                            if (isPointerActive) {
-                                if(e.cancelable) e.preventDefault();
-                                draw(e);
-                            }
-                        }}
-                        onTouchEnd={(e) => {
-                            if (isPointerActive) {
-                                if(e.cancelable) e.preventDefault();
-                                stopDrawing(e);
-                            }
-                        }}
-                    />
-                    {isPointerActive && (
-                        <button 
-                            onClick={clearCanvas}
-                            className="absolute top-2 right-2 p-2 bg-white/90 shadow-sm border border-slate-200 rounded-full text-slate-500 hover:text-red-500 hover:bg-red-50 transition-colors z-30"
-                            title="ล้างกระดาน"
-                        >
-                            <RotateCcw size={16} />
-                        </button>
-                    )}
-                </div>
-            );
-        };
-
-        const GraphView = ({ notes, onNodeClick }) => {
-          const canvasRef = useRef(null);
-          const [nodes, setNodes] = useState([]);
-          const [links, setLinks] = useState([]);
-          
-          useEffect(() => {
-            const width = canvasRef.current?.offsetWidth || 800;
-            const height = canvasRef.current?.offsetHeight || 600;
-
-            const newNodes = notes.map(note => ({
-              id: note.id,
-              title: note.title,
-              x: Math.random() * width,
-              y: Math.random() * height,
-              vx: 0,
-              vy: 0
-            }));
-
-            const newLinks = notes.flatMap(source => {
-              const targetTitles = extractLinks(source.content || "");
-              return targetTitles
-                .map(targetTitle => notes.find(n => n.title === targetTitle))
-                .filter(target => target)
-                .map(target => ({ source: source.id, target: target.id }));
-            });
-
-            setNodes(newNodes);
-            setLinks(newLinks);
-          }, [notes]);
-
-          useEffect(() => {
-            const canvas = canvasRef.current;
-            if (!canvas || nodes.length === 0) return;
-            const ctx = canvas.getContext('2d');
-            let animationFrameId;
-
-            const animate = () => {
-              const width = canvas.width;
-              const height = canvas.height;
-              const repulsion = 200;
-              const springLength = 100;
-              const k = 0.05;
-              const centerForce = 0.005;
-
-              for (let i = 0; i < nodes.length; i++) {
-                let node = nodes[i];
-                for (let j = 0; j < nodes.length; j++) {
-                  if (i === j) continue;
-                  let other = nodes[j];
-                  let dx = node.x - other.x;
-                  let dy = node.y - other.y;
-                  let dist = Math.sqrt(dx * dx + dy * dy) || 1;
-                  let force = repulsion / (dist * dist);
-                  node.vx += (dx / dist) * force;
-                  node.vy += (dy / dist) * force;
-                }
-                node.vx += (width / 2 - node.x) * centerForce;
-                node.vy += (height / 2 - node.y) * centerForce;
-              }
-
-              links.forEach(link => {
-                let source = nodes.find(n => n.id === link.source);
-                let target = nodes.find(n => n.id === link.target);
-                if (source && target) {
-                  let dx = target.x - source.x;
-                  let dy = target.y - source.y;
-                  let dist = Math.sqrt(dx * dx + dy * dy) || 1;
-                  let force = (dist - springLength) * k;
-                  let fx = (dx / dist) * force;
-                  let fy = (dy / dist) * force;
-                  source.vx += fx;
-                  source.vy += fy;
-                  target.vx -= fx;
-                  target.vy -= fy;
-                }
-              });
-
-              ctx.clearRect(0, 0, width, height);
-              
-              ctx.strokeStyle = '#cbd5e1';
-              ctx.lineWidth = 1.5;
-              links.forEach(link => {
-                let source = nodes.find(n => n.id === link.source);
-                let target = nodes.find(n => n.id === link.target);
-                if (source && target) {
-                  ctx.beginPath();
-                  ctx.moveTo(source.x, source.y);
-                  ctx.lineTo(target.x, target.y);
-                  ctx.stroke();
-                }
-              });
-
-              nodes.forEach(node => {
-                node.x += node.vx;
-                node.y += node.vy;
-                node.vx *= 0.9;
-                node.vy *= 0.9;
-                node.x = Math.max(20, Math.min(width - 20, node.x));
-                node.y = Math.max(20, Math.min(height - 20, node.y));
-
-                ctx.beginPath();
-                ctx.arc(node.x, node.y, 25, 0, Math.PI * 2);
-                ctx.fillStyle = '#ffffff';
-                ctx.fill();
-                ctx.lineWidth = 2;
-                ctx.strokeStyle = '#3b82f6';
-                ctx.stroke();
-
-                ctx.fillStyle = '#1e293b';
-                ctx.font = '12px Prompt, sans-serif';
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                const label = node.title.length > 10 ? node.title.substring(0, 8) + '..' : node.title;
-                ctx.fillText(label, node.x, node.y);
-              });
-
-              animationFrameId = requestAnimationFrame(animate);
-            };
-
-            const handleResize = () => {
-              canvas.width = canvas.parentElement.offsetWidth;
-              canvas.height = canvas.parentElement.offsetHeight;
-            };
-            window.addEventListener('resize', handleResize);
-            handleResize();
-            animate();
-
-            return () => {
-              window.removeEventListener('resize', handleResize);
-              cancelAnimationFrame(animationFrameId);
-            };
-          }, [nodes, links]);
-
-          const handleClick = (e) => {
-            const rect = canvasRef.current.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
-            const clickedNode = nodes.find(node => {
-                const dx = node.x - x;
-                const dy = node.y - y;
-                return Math.sqrt(dx*dx + dy*dy) < 25;
-            });
-            if (clickedNode) onNodeClick(clickedNode.id);
-          };
-
-          return (
-            <div className="w-full h-full bg-slate-50 relative overflow-hidden rounded-xl border border-slate-200 shadow-inner">
-                <div className="absolute top-4 left-4 z-10 bg-white/80 backdrop-blur px-3 py-1 rounded-full text-xs font-medium text-slate-500 shadow-sm border border-slate-200">
-                    Interactive Graph View
-                </div>
-              <canvas ref={canvasRef} className="w-full h-full cursor-pointer" onClick={handleClick} />
-            </div>
-          );
-        };
-
-        // --- ERROR BANNER ---
-        const ErrorBanner = ({ error, onClose }) => {
-            if (!error) return null;
-            return (
-                <div className="fixed top-0 left-0 right-0 z-50 p-4 flex justify-center pointer-events-none animate-slide-in-top">
-                    <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl shadow-lg flex items-center gap-3 max-w-lg pointer-events-auto">
-                        <AlertCircle className="flex-shrink-0" />
-                        <div className="flex-1 text-sm">
-                            <p className="font-semibold">บันทึกข้อมูลไม่สำเร็จ</p>
-                            <p>{error}</p>
-                            {error.includes("Missing or insufficient permissions") && (
-                                <p className="mt-1 text-xs bg-red-100 p-1 rounded">
-                                    💡 วิธีแก้: ไปที่ Firebase Console -> Firestore Database -> Rules และเปลี่ยนเป็น <code>allow read, write: if true;</code>
-                                </p>
-                            )}
-                        </div>
-                        <button onClick={onClose} className="p-1 hover:bg-red-100 rounded-full"><X size={16}/></button>
+                <div className={`absolute bg-white rounded-lg border flex flex-col cursor-grab active:cursor-grabbing transition-all select-none ${getBorderColor()} ${isSelected ? 'z-20' : 'z-10'}`} style={{...baseStyle, height: 'auto', minHeight: `${item.height}px`}} onPointerDown={(e) => onPointerDown(e, item)} onClick={(e) => { e.stopPropagation(); onSelect(item.id); }} onDoubleClick={() => onDoubleClick(item)}>
+                    <div className={`h-2 w-full rounded-t-lg ${item.color || 'bg-gray-200'}`} />
+                    <div className="p-3 flex flex-col gap-2 pointer-events-none">
+                        <div className="flex justify-between items-start"><h3 className="font-bold text-gray-800 leading-snug">{item.title || "ชื่องานใหม่"}</h3>{getStatusIcon(item.status)}</div>
+                        <p className="text-xs text-gray-500 line-clamp-3">{item.content || "คำอธิบายงาน..."}</p>
+                        <div className="mt-2 pt-2 border-t border-gray-100 flex justify-between items-center"><span className="text-[10px] px-2 py-0.5 bg-gray-100 rounded text-gray-500 font-mono">ID-{item.id.toString().slice(-4)}</span>{item.assignee && (<div className="w-5 h-5 rounded-full bg-blue-100 text-blue-600 text-[10px] flex items-center justify-center font-bold">{item.assignee[0]}</div>)}</div>
                     </div>
                 </div>
             );
         };
 
-        // --- MAIN APP ---
-        function App() {
-          const [user, setUser] = useState(null);
-          const [isOfflineMode, setIsOfflineMode] = useState(false);
-          const [authInitialized, setAuthInitialized] = useState(false);
-          
-          const [notebooks, setNotebooks] = useState([]);
-          const [notes, setNotes] = useState([]);
-          const [activeNoteId, setActiveNoteId] = useState(null);
-          const [activeNotebookId, setActiveNotebookId] = useState('all'); 
-          const [searchQuery, setSearchQuery] = useState('');
-          const [showGraph, setShowGraph] = useState(false);
-          const [sidebarOpen, setSidebarOpen] = useState(true);
-          const [toolMode, setToolMode] = useState('cursor'); 
-          const [penColor, setPenColor] = useState('#ef4444'); 
-          const [isCreatingNotebook, setIsCreatingNotebook] = useState(false);
-          const [newNotebookName, setNewNotebookName] = useState('');
-          const [saveStatus, setSaveStatus] = useState('saved'); 
-          const [lastError, setLastError] = useState(null);
-          
-          const textareaRef = useRef(null);
-          const colorInputRef = useRef(null);
-          const saveTimeoutRef = useRef(null);
-
-          // 1. Initial Auth / Environment Check
-          useEffect(() => {
-              if (!window.firebaseModules) {
-                  setIsOfflineMode(true);
-                  setAuthInitialized(true);
-                  return;
-              }
-
-              const { initializeApp, getAuth, signInAnonymously, onAuthStateChanged, getFirestore, signInWithCustomToken } = window.firebaseModules;
-              
-              let firebaseConfig = USER_FIREBASE_CONFIG;
-              let usingEnvConfig = false;
-              
-              if (!firebaseConfig && typeof __firebase_config !== 'undefined') {
-                  try {
-                      firebaseConfig = JSON.parse(__firebase_config);
-                      usingEnvConfig = true;
-                  } catch (e) { console.error("Error parsing env config", e); }
-              }
-
-              if (firebaseConfig) {
-                  try {
-                      const app = initializeApp(firebaseConfig);
-                      const auth = getAuth(app);
-                      
-                      const initAuth = async () => {
-                          if (usingEnvConfig && typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                              await signInWithCustomToken(auth, __initial_auth_token);
-                          } else if (usingEnvConfig) {
-                              await signInAnonymously(auth);
-                          }
-                      };
-                      initAuth();
-
-                      const unsubscribe = onAuthStateChanged(auth, (u) => {
-                          setUser(u);
-                          // Clear data on logout/user change to avoid stale data
-                          if (!u) {
-                              setNotes([]);
-                              setNotebooks([]);
-                              setActiveNoteId(null);
-                          }
-                          setIsOfflineMode(false);
-                          setAuthInitialized(true);
-                      });
-                      return () => unsubscribe();
-                  } catch (e) {
-                      console.warn("Cloud init failed, falling back to local.", e);
-                      setIsOfflineMode(true);
-                      setAuthInitialized(true);
-                  }
-              } else {
-                  setIsOfflineMode(true);
-                  setAuthInitialized(true);
-              }
-          }, []);
-
-          // Load Local Data if Offline
-          useEffect(() => {
-              if (isOfflineMode) {
-                  const savedNotebooks = localStorage.getItem('wikigraph_notebooks');
-                  const savedNotes = localStorage.getItem('wikigraph_notes');
-                  if (savedNotebooks) setNotebooks(JSON.parse(savedNotebooks));
-                  else setNotebooks(INITIAL_NOTEBOOKS);
-                  
-                  if (savedNotes) setNotes(JSON.parse(savedNotes));
-                  else setNotes(INITIAL_NOTES);
-              }
-          }, [isOfflineMode]);
-
-          // 2. Data Sync (Cloud)
-          useEffect(() => {
-              if (isOfflineMode || !user || !window.firebaseModules || !authInitialized) return;
-              
-              const { getFirestore, collection, onSnapshot, query } = window.firebaseModules;
-              const db = getFirestore(); 
-              
-              const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-
-              const notebooksRef = collection(db, 'artifacts', appId, 'users', user.uid, 'notebooks');
-              const notesRef = collection(db, 'artifacts', appId, 'users', user.uid, 'notes');
-
-              const unsubNotebooks = onSnapshot(query(notebooksRef), (snapshot) => {
-                  const items = [];
-                  snapshot.forEach(doc => items.push({ ...doc.data(), id: doc.id }));
-                  // Set notebooks even if empty (to clear previous user's data)
-                  setNotebooks(items.length > 0 ? items : INITIAL_NOTEBOOKS);
-              }, (error) => {
-                  console.error("Fetch notebooks failed:", error);
-                  setLastError(error.message);
-                  setSaveStatus('error');
-              });
-
-              const unsubNotes = onSnapshot(query(notesRef), (snapshot) => {
-                  const items = [];
-                  snapshot.forEach(doc => items.push({ ...doc.data(), id: doc.id }));
-                  
-                  // Always update notes state
-                  setNotes(items);
-              }, (error) => {
-                  console.error("Fetch notes failed:", error);
-                  setLastError(error.message);
-                  setSaveStatus('error');
-              });
-
-              return () => {
-                  unsubNotebooks();
-                  unsubNotes();
-              };
-          }, [user, isOfflineMode, authInitialized]);
-
-          // 3. Save Logic
-          const saveNote = useCallback(async (note) => {
-              setSaveStatus('saving');
-              setLastError(null);
-              
-              if (isOfflineMode) {
-                  setSaveStatus('saved');
-              } else {
-                  if (!user || !window.firebaseModules) return;
-                  const { getFirestore, doc, setDoc } = window.firebaseModules;
-                  const db = getFirestore();
-                  const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-
-                  try {
-                      const noteRef = doc(db, 'artifacts', appId, 'users', user.uid, 'notes', note.id);
-                      const cleanNote = JSON.parse(JSON.stringify(note));
-                      await setDoc(noteRef, cleanNote, { merge: true });
-                      setSaveStatus('saved');
-                  } catch (e) {
-                      console.error("Cloud save failed", e);
-                      setSaveStatus('error');
-                      setLastError(e.message || "Unknown error");
-                  }
-              }
-          }, [user, isOfflineMode]);
-
-          // Local Persist
-          useEffect(() => {
-              if (isOfflineMode) {
-                  localStorage.setItem('wikigraph_notes', JSON.stringify(notes));
-                  localStorage.setItem('wikigraph_notebooks', JSON.stringify(notebooks));
-                  setSaveStatus('saved');
-              }
-          }, [notes, notebooks, isOfflineMode]);
-
-          useEffect(() => {
-              if (!activeNoteId && notes.length > 0) {
-                  setActiveNoteId(notes[0].id);
-              }
-          }, [notes]);
-
-          const debouncedSaveNote = useCallback((note) => {
-              if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
-              setSaveStatus('saving');
-              saveTimeoutRef.current = setTimeout(() => {
-                  saveNote(note);
-              }, 1000); 
-          }, [saveNote]);
-
-          // Derived State
-          const activeNote = useMemo(() => 
-            notes.find(n => n.id === activeNoteId), 
-          [notes, activeNoteId]);
-
-          const activeNotebookName = useMemo(() => {
-            if (activeNotebookId === 'all') return 'โน้ตทั้งหมด';
-            return notebooks.find(nb => nb.id === activeNotebookId)?.name || 'สมุดบันทึก';
-          }, [notebooks, activeNotebookId]);
-
-          const filteredNotes = useMemo(() => {
-            let filtered = notes;
-            if (activeNotebookId !== 'all') {
-              filtered = filtered.filter(n => n.notebookId === activeNotebookId);
-            }
-            if (searchQuery) {
-              const q = setSearchQuery.toLowerCase();
-              filtered = filtered.filter(n => 
-                (n.title && n.title.toLowerCase().includes(q)) || 
-                (n.content && n.content.toLowerCase().includes(q))
-              );
-            }
-            return filtered;
-          }, [notes, activeNotebookId, searchQuery]);
-          
-          const currentColor = useMemo(() => {
-              if (toolMode === 'pen') return penColor;
-              return activeNote ? (activeNote.textColor || '#1e293b') : '#1e293b';
-          }, [toolMode, penColor, activeNote]);
-
-          useEffect(() => {
-            if (textareaRef.current) {
-                textareaRef.current.style.height = 'auto';
-                textareaRef.current.style.height = textareaRef.current.scrollHeight + 'px';
-            }
-          }, [activeNote?.content, toolMode]);
-
-          const handleUpdateNote = (key, value) => {
-            if (!activeNoteId) return;
-            const updatedNotes = notes.map(n => 
-              n.id === activeNoteId ? { ...n, [key]: value } : n
-            );
-            setNotes(updatedNotes);
-            const noteToSave = updatedNotes.find(n => n.id === activeNoteId);
-            if (noteToSave) {
-                debouncedSaveNote(noteToSave);
-            }
-          };
-
-          const handleColorSelect = (colorValue) => {
-              if (toolMode === 'pen') {
-                  setPenColor(colorValue);
-              } else {
-                  handleUpdateNote('textColor', colorValue);
-              }
-          };
-
-          const handleCreateNote = async () => {
-            const newId = generateId();
-            const targetNotebookId = activeNotebookId === 'all' ? (notebooks[0]?.id || 'nb_general') : activeNotebookId;
-            const newNote = {
-              id: newId,
-              title: 'New Note',
-              content: '',
-              drawing: null,
-              date: new Date().toISOString().split('T')[0],
-              notebookId: targetNotebookId,
-              textColor: '#1e293b'
-            };
-            setNotes([newNote, ...notes]);
-            setActiveNoteId(newId);
-            setToolMode('cursor');
-            if (window.innerWidth < 768) setSidebarOpen(false);
-            if (!isOfflineMode) saveNote(newNote);
-          };
-
-          const handleSaveNotebook = async () => {
-            if (newNotebookName.trim()) {
-                const newNb = { id: `nb_${generateId()}`, name: newNotebookName.trim() };
-                setNotebooks([...notebooks, newNb]);
-                setActiveNotebookId(newNb.id);
-                setNewNotebookName('');
-                setIsCreatingNotebook(false);
-                if (!isOfflineMode && user && window.firebaseModules) {
-                    const { getFirestore, doc, setDoc } = window.firebaseModules;
-                    const db = getFirestore();
-                    const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-                    try {
-                        const nbRef = doc(db, 'artifacts', appId, 'users', user.uid, 'notebooks', newNb.id);
-                        await setDoc(nbRef, newNb);
-                    } catch (e) { 
-                        console.error(e); 
-                        setLastError(e.message);
-                        setSaveStatus('error');
-                    }
-                }
-            } else {
-                setIsCreatingNotebook(false);
-            }
-          };
-          
-          const handleCancelNotebook = () => {
-              setNewNotebookName('');
-              setIsCreatingNotebook(false);
-          }
-
-          const handleDeleteNote = async (id) => {
-            const newNotes = notes.filter(n => n.id !== id);
-            setNotes(newNotes);
-            if (activeNoteId === id) {
-                const remainingInView = activeNotebookId === 'all' 
-                    ? newNotes 
-                    : newNotes.filter(n => n.notebookId === activeNotebookId);
-                
-                if (remainingInView.length > 0) {
-                    setActiveNoteId(remainingInView[0].id);
-                } else {
-                    setActiveNoteId(null);
-                }
-            }
-            if (!isOfflineMode && user && window.firebaseModules) {
-                const { getFirestore, doc, deleteDoc } = window.firebaseModules;
-                const db = getFirestore();
-                const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-                try {
-                    await deleteDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'notes', id));
-                } catch(e) { 
-                    console.error(e); 
-                    setLastError(e.message);
-                    setSaveStatus('error');
-                }
-            }
-          };
-
-          const handleSignOut = async () => {
-              const { getAuth, signOut } = window.firebaseModules;
-              const auth = getAuth();
-              await signOut(auth);
-          };
-          
-          const handleForceSync = () => {
-             // Just trigger a re-fetch logic if needed, but onSnapshot handles it automatically.
-             // We can just clear error.
-             setLastError(null);
-             setSaveStatus('saved');
-          }
-
-          const backlinks = useMemo(() => {
-            if (!activeNote) return [];
-            return notes.filter(n => {
-                const links = extractLinks(n.content || "");
-                return links.includes(activeNote.title);
-            });
-          }, [notes, activeNote]);
-
-          // Auth State Check
-          if (!authInitialized) {
-              return (
-                  <div className="flex items-center justify-center h-screen bg-slate-50 text-slate-400 gap-2">
-                      <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></div>
-                      <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce delay-75"></div>
-                      <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce delay-150"></div>
-                      Loading...
-                  </div>
-              );
-          }
-
-          // Show Login Screen if NOT offline and NO user
-          if (!isOfflineMode && !user) {
-              return <AuthPage onGuestLogin={() => setIsOfflineMode(true)} error={lastError} />;
-          }
-
-          return (
-            <div className="flex h-screen bg-slate-50 text-slate-800 font-sans selection:bg-blue-100 selection:text-blue-900 relative">
-              
-              <ErrorBanner error={lastError} onClose={() => setLastError(null)} />
-
-              {/* SIDEBAR */}
-              <div 
-                className={`${sidebarOpen ? 'w-72 translate-x-0' : 'w-0 -translate-x-full opacity-0'} flex-shrink-0 bg-white border-r border-slate-200 flex flex-col transition-all duration-300 ease-in-out relative z-30`}
-              >
-                {/* App Title */}
-                <div className="p-4 flex items-center justify-between">
-                    <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent flex items-center gap-2">
-                      <Network size={24} className="text-blue-600"/> WikiGraph
-                    </h1>
-                    <button onClick={() => setSidebarOpen(false)} className="md:hidden text-slate-400 hover:text-slate-600">
-                        <Minimize2 size={18} />
-                    </button>
-                </div>
-
-                {/* Notebooks Section */}
-                <div className="px-3 pb-2 border-b border-slate-100 flex-shrink-0">
-                    <div className="flex items-center justify-between px-2 mb-1">
-                        <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Notebooks</span>
-                        <button 
-                            onClick={() => setIsCreatingNotebook(true)}
-                            className="text-slate-400 hover:text-blue-600 p-1 rounded-md hover:bg-slate-100" 
-                            title="เพิ่มสมุดใหม่"
-                        >
-                            <FolderPlus size={14} />
-                        </button>
+        const MiniMap = ({ items, viewport, setViewport }) => {
+            const bounds = useMemo(() => {
+                if (items.length === 0) return { minX: 0, maxX: 2000, minY: 0, maxY: 1000 };
+                let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+                items.forEach(i => { minX = Math.min(minX, i.x); maxX = Math.max(maxX, i.x + i.width); minY = Math.min(minY, i.y); maxY = Math.max(maxY, i.y + i.height); });
+                return { minX: minX - 500, maxX: maxX + 500, minY: minY - 500, maxY: maxY + 500 };
+            }, [items]);
+            const scale = Math.min(160 / (bounds.maxX - bounds.minX || 1), 100 / (bounds.maxY - bounds.minY || 1));
+            return (
+                <div className="fixed bottom-4 right-4 w-40 h-24 bg-white border border-gray-300 shadow-lg rounded-md overflow-hidden opacity-90 hidden sm:block pointer-events-none">
+                    <div className="relative w-full h-full bg-gray-50">
+                        {items.map(item => (<div key={item.id} className={`absolute ${item.type === 'note' ? item.color.replace('bg-', 'bg-') : item.type === 'drawing' ? 'bg-transparent border border-gray-400' : 'bg-gray-400'}`} style={{ left: (item.x - bounds.minX) * scale, top: (item.y - bounds.minY) * scale, width: Math.max(2, item.width * scale), height: Math.max(2, (item.type === 'note' ? item.width : item.height) * scale), borderRadius: '1px' }} />))}
+                        <div className="absolute border-2 border-red-500 bg-red-500/10" style={{ left: (-viewport.x - bounds.minX) * scale, top: (-viewport.y - bounds.minY) * scale, width: (window.innerWidth / viewport.scale) * scale, height: (window.innerHeight / viewport.scale) * scale }} />
                     </div>
-                    
-                    <div className="space-y-0.5 max-h-40 overflow-y-auto custom-scrollbar">
-                        <div 
-                            onClick={() => setActiveNotebookId('all')}
-                            className={`px-3 py-2 rounded-md cursor-pointer transition-all flex items-center gap-2 text-sm ${activeNotebookId === 'all' ? 'bg-slate-100 text-slate-900 font-medium' : 'text-slate-600 hover:bg-slate-50'}`}
-                        >
-                            <Library size={16} className={activeNotebookId === 'all' ? 'text-slate-700' : 'text-slate-400'} />
-                            <span>โน้ตทั้งหมด</span>
+                </div>
+            );
+        };
+
+        const EditModal = ({ item, isOpen, onClose, onSave, onDelete }) => {
+            const [data, setData] = useState({ ...item });
+            useEffect(() => { if(item) setData({ ...item }); }, [item]);
+            if (!isOpen || !item) return null;
+            if (item.type === 'drawing') {
+                return (
+                    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                        <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm p-6 text-center animate-in fade-in zoom-in">
+                            <h3 className="text-lg font-bold mb-4">จัดการรูปวาด</h3>
+                            <div className="flex gap-4 justify-center"><button onClick={() => { onDelete(item.id); onClose(); }} className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 flex items-center gap-2"><Trash2 className="w-4 h-4" /> ลบ</button><button onClick={onClose} className="bg-gray-200 text-gray-700 px-4 py-2 rounded hover:bg-gray-300">ปิด</button></div>
                         </div>
-                        
-                        {isCreatingNotebook && (
-                            <div className="px-3 py-1 flex items-center gap-1 animate-fade-in">
-                                <input
-                                    autoFocus
-                                    type="text"
-                                    className="w-full text-sm border border-blue-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-100"
-                                    placeholder="ชื่อสมุด..."
-                                    value={newNotebookName}
-                                    onChange={(e) => setNewNotebookName(e.target.value)}
-                                    onKeyDown={(e) => {
-                                        if (e.key === 'Enter') handleSaveNotebook();
-                                        if (e.key === 'Escape') handleCancelNotebook();
-                                    }}
-                                />
-                                <button onClick={handleSaveNotebook} className="text-green-600 hover:bg-green-50 p-1 rounded"><Check size={14}/></button>
-                                <button onClick={handleCancelNotebook} className="text-red-500 hover:bg-red-50 p-1 rounded"><X size={14}/></button>
+                    </div>
+                );
+            }
+            return (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in">
+                        <div className="p-4 border-b flex justify-between items-center bg-gray-50"><h2 className="text-lg font-bold flex items-center gap-2 text-gray-700">{item.type === 'note' ? <StickyNote /> : <CheckCircle />} แก้ไขรายละเอียด</h2><button onClick={onClose}><X className="w-5 h-5" /></button></div>
+                        <div className="p-6 overflow-y-auto space-y-4">
+                            {item.type !== 'note' && (<div><label className="block text-sm font-medium text-gray-700">หัวข้อ</label><input value={data.title || ''} onChange={(e) => setData({...data, title: e.target.value})} className="w-full p-2 border rounded-md" /></div>)}
+                            <div><label className="block text-sm font-medium text-gray-700">เนื้อหา</label><textarea value={data.content || ''} onChange={(e) => setData({...data, content: e.target.value})} rows={6} className="w-full p-2 border rounded-md" /></div>
+                            <div className="flex gap-4"><div className="flex-1"><label className="block text-sm font-medium text-gray-700">สี</label><div className="flex gap-2">{['bg-yellow-200', 'bg-blue-200', 'bg-green-200', 'bg-red-200', 'bg-white'].map(color => (<button key={color} onClick={() => setData({...data, color})} className={`w-6 h-6 rounded-full border border-gray-300 ${color} ${data.color === color ? 'ring-2 ring-gray-400' : ''}`} />))}</div></div>{item.type !== 'note' && (<div className="flex-1"><label className="block text-sm font-medium text-gray-700">สถานะ</label><select value={data.status || 'todo'} onChange={(e) => setData({...data, status: e.target.value})} className="w-full p-2 border rounded-md"><option value="todo">To Do</option><option value="doing">Doing</option><option value="done">Done</option></select></div>)}</div>
+                        </div>
+                        <div className="p-4 border-t bg-gray-50 flex justify-between"><button onClick={() => { onDelete(item.id); onClose(); }} className="text-red-500 flex items-center gap-1"><Trash2 className="w-4 h-4" /> ลบ</button><button onClick={() => { onSave(data); onClose(); }} className="bg-blue-600 text-white px-6 py-2 rounded-md">บันทึก</button></div>
+                    </div>
+                </div>
+            );
+        };
+
+        const ConfirmModal = ({ isOpen, title, message, onConfirm, onCancel }) => {
+            if (!isOpen) return null;
+            return (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[60] flex items-center justify-center p-4" onClick={onCancel}>
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm p-6 text-center animate-in fade-in zoom-in" onClick={e => e.stopPropagation()}>
+                        <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4"><AlertCircle className="w-6 h-6 text-red-600" /></div>
+                        <h3 className="text-lg font-bold text-gray-800 mb-2">{title}</h3>
+                        <p className="text-gray-500 text-sm mb-6">{message}</p>
+                        <div className="flex gap-3 justify-center"><button onClick={onCancel} className="px-4 py-2 bg-gray-100 rounded-lg">ยกเลิก</button><button onClick={onConfirm} className="px-4 py-2 bg-red-600 text-white rounded-lg">ยืนยัน</button></div>
+                    </div>
+                </div>
+            );
+        };
+
+        const CalendarWidget = ({ notebooks, selectedDate, onSelectDate }) => {
+            const [currentDate, setCurrentDate] = useState(new Date());
+            const daysInMonth = (date) => new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+            const firstDayOfMonth = (date) => new Date(date.getFullYear(), date.getMonth(), 1).getDay();
+            const prevMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
+            const nextMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
+            const totalDays = daysInMonth(currentDate); const startDay = firstDayOfMonth(currentDate);
+            const hasActivity = (day) => { const checkDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), day).toDateString(); return notebooks.some(nb => nb.updatedAt && new Date(nb.updatedAt).toDateString() === checkDate); };
+            const isSelected = (day) => { if (!selectedDate) return false; return selectedDate.toDateString() === new Date(currentDate.getFullYear(), currentDate.getMonth(), day).toDateString(); };
+            const months = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
+            return (
+                <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+                    <div className="flex justify-between items-center mb-4"><h3 className="font-bold text-gray-700">{months[currentDate.getMonth()]} {currentDate.getFullYear() + 543}</h3><div className="flex gap-1"><button onClick={prevMonth} className="p-1"><ChevronLeft className="w-5 h-5" /></button><button onClick={nextMonth} className="p-1"><ChevronRight className="w-5 h-5" /></button></div></div>
+                    <div className="grid grid-cols-7 gap-1 text-center mb-2">{['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส'].map(d => (<div key={d} className="text-xs text-gray-400">{d}</div>))}</div>
+                    <div className="grid grid-cols-7 gap-1">
+                        {[...Array(startDay)].map((_, i) => <div key={`empty-${i}`} />)}
+                        {[...Array(totalDays)].map((_, i) => { const day = i + 1; const active = hasActivity(day); const selected = isSelected(day); return (<button key={day} onClick={() => onSelectDate(new Date(currentDate.getFullYear(), currentDate.getMonth(), day))} className={`h-8 w-8 rounded-full flex items-center justify-center text-sm relative ${selected ? 'bg-blue-600 text-white' : 'hover:bg-gray-100'} ${!selected && active ? 'font-bold' : ''}`}>{day}{active && !selected && <div className="absolute bottom-1 w-1 h-1 bg-blue-500 rounded-full"></div>}</button>); })}
+                    </div>
+                    {selectedDate && <button onClick={() => onSelectDate(null)} className="w-full mt-4 text-xs text-blue-600 flex justify-center gap-1"><X className="w-3 h-3" /> ล้างตัวกรอง</button>}
+                </div>
+            );
+        };
+
+        const Dashboard = ({ user, notebooks, onSelectNotebook, onCreateNotebook, onDeleteNotebook, onRenameNotebook, selectedDate, onSelectDate, onMigrate, hasLocalData }) => {
+            const [isCreating, setIsCreating] = useState(false);
+            const [newBookName, setNewBookName] = useState('');
+            const getInitialDate = () => (selectedDate || new Date()).toISOString().split('T')[0];
+            const [newBookDate, setNewBookDate] = useState(getInitialDate());
+            const [editingId, setEditingId] = useState(null);
+            const [editName, setEditName] = useState('');
+            const [deleteId, setDeleteId] = useState(null);
+            
+            useEffect(() => { if (isCreating) setNewBookDate(getInitialDate()); }, [isCreating, selectedDate]);
+            const handleCreate = (e) => { e.preventDefault(); if (newBookName.trim()) { onCreateNotebook(newBookName, newBookDate ? new Date(newBookDate) : new Date()); setNewBookName(''); setIsCreating(false); } };
+            const handleRename = (id) => { if (editName.trim()) onRenameNotebook(id, editName); setEditingId(null); };
+            const filteredNotebooks = selectedDate ? notebooks.filter(nb => nb.updatedAt && new Date(nb.updatedAt).toDateString() === selectedDate.toDateString()) : notebooks;
+
+            return (
+                <div className="h-full w-full bg-gray-50 overflow-y-auto custom-scroll p-4 md:p-8 font-sans">
+                    <div className="max-w-7xl mx-auto pb-20">
+                        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                            <div><h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2"><Book className="w-7 h-7 text-blue-600" /> ห้องสมุดของฉัน</h1></div>
+                            <div className="flex items-center gap-2 w-full md:w-auto">
+                                {hasLocalData && <button onClick={onMigrate} className="flex items-center gap-2 bg-amber-100 text-amber-700 px-3 py-1.5 rounded-full text-sm font-medium border border-amber-200 animate-pulse hover:animate-none"><DownloadCloud className="w-4 h-4" /> กู้คืนข้อมูลเดิม</button>}
+                                <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-full shadow-sm border border-gray-100 flex-1 md:flex-initial">{user.photoURL ? (<img src={user.photoURL} className="w-6 h-6 rounded-full" />) : (<User className="w-5 h-5 text-gray-500" />)}<span className="text-sm font-medium text-gray-700 truncate max-w-[100px]">{user.displayName || user.email}</span></div>
+                                <button onClick={() => signOut(auth)} className="p-2 bg-white hover:bg-gray-100 rounded-full text-gray-600 border border-gray-200"><LogOut className="w-5 h-5" /></button>
+                                <button onClick={() => setIsCreating(true)} className="bg-blue-600 text-white px-4 py-2 rounded-lg shadow-md flex items-center gap-2 text-sm font-medium whitespace-nowrap"><Plus className="w-4 h-4" /> สร้างสมุด</button>
                             </div>
-                        )}
-
-                        {notebooks.map(nb => (
-                            <NotebookItem 
-                                key={nb.id} 
-                                notebook={nb} 
-                                isActive={activeNotebookId === nb.id} 
-                                onClick={setActiveNotebookId}
-                                count={notes.filter(n => n.notebookId === nb.id).length}
-                            />
-                        ))}
-                    </div>
-                </div>
-
-                {/* Notes List */}
-                <div className="p-3 flex-shrink-0 bg-white z-10">
-                    <div className="relative mb-2">
-                        <Search className="absolute left-3 top-2.5 text-slate-400" size={14} />
-                        <input 
-                            type="text" 
-                            placeholder="ค้นหา..." 
-                            className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                        />
-                    </div>
-                     <button 
-                        onClick={handleCreateNote}
-                        className="w-full bg-slate-900 hover:bg-slate-800 text-white py-2 px-3 rounded-lg flex items-center justify-center gap-2 transition-colors shadow-sm text-sm font-medium"
-                    >
-                        <Plus size={16} /> สร้างโน้ตใน "{activeNotebookName}"
-                    </button>
-                </div>
-
-                <div className="flex-1 overflow-y-auto px-2 pb-4">
-                  <div className="text-xs font-semibold text-slate-400 px-2 mb-2 flex justify-between items-center">
-                    <span>รายการโน้ต</span>
-                    <span className="text-[10px] bg-slate-100 px-1.5 rounded text-slate-500">{filteredNotes.length}</span>
-                  </div>
-                  
-                  {filteredNotes.length === 0 ? (
-                    <div className="text-center text-slate-400 py-8 text-sm flex flex-col items-center">
-                        <FileText size={24} className="mb-2 opacity-20" />
-                        <span>ไม่มีโน้ตในหมวดนี้</span>
-                    </div>
-                  ) : (
-                    filteredNotes.map(note => (
-                      <NoteItem 
-                        key={note.id} 
-                        note={note} 
-                        isActive={activeNoteId === note.id} 
-                        onClick={setActiveNoteId} 
-                      />
-                    ))
-                  )}
-                </div>
-              </div>
-
-
-              {/* MAIN CONTENT */}
-              <div className="flex-1 flex flex-col h-full relative overflow-hidden bg-white">
-                
-                {/* Top Navigation */}
-                <div className="h-14 bg-white border-b border-slate-200 flex items-center justify-between px-4 md:px-6 flex-shrink-0 z-20">
-                  <div className="flex items-center gap-3">
-                     {!sidebarOpen && (
-                        <button onClick={() => setSidebarOpen(true)} className="p-2 hover:bg-slate-100 rounded-md text-slate-500">
-                            <Maximize2 size={18} />
-                        </button>
-                     )}
-                     <div className="flex items-center text-slate-400 text-sm gap-2">
-                        <span className="flex items-center gap-1"><Book size={14}/> {notebooks.find(nb => nb.id === activeNote?.notebookId)?.name || 'General'}</span>
-                        <span>/</span>
-                        <span className="text-slate-800 font-medium truncate max-w-[200px]">{activeNote?.title || 'Untitled'}</span>
-                     </div>
-                  </div>
-                  
-                  <div className="flex items-center gap-2">
-                    {/* Status Badge */}
-                    <div className={`status-badge ${isOfflineMode ? 'status-local' : 'status-cloud'}`} title={isOfflineMode ? "Offline Mode: Saved to Browser" : "Cloud Mode: Saved to Firebase"}>
-                        {isOfflineMode ? <HardDrive size={14} /> : <Cloud size={14} />}
-                        <span>{isOfflineMode ? 'Local' : 'Cloud'}</span>
-                    </div>
-                    
-                    {/* Error / Save Status */}
-                    {saveStatus === 'error' ? (
-                        <div className="status-error cursor-pointer" onClick={() => setLastError(lastError || "Unknown error")} title="Click to see error">
-                            <AlertCircle size={14} /> <span>Error</span>
                         </div>
-                    ) : (
-                        <div className={`cloud-status ${saveStatus}`}>
-                            {saveStatus === 'saving' ? <span className="animate-pulse flex items-center gap-1"><Cloud size={16}/> Saving...</span> : <span className="flex items-center gap-1"><CloudCheck size={16}/> Saved</span>}
-                        </div>
-                    )}
-                    
-                    <button onClick={handleForceSync} title="Force Check Status" className="p-1 text-slate-400 hover:text-blue-500"><RefreshCw size={14}/></button>
-
-                    <div className="h-6 w-px bg-slate-200 mx-1"></div>
-                    <button 
-                        onClick={() => setShowGraph(!showGraph)}
-                        className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors border border-transparent ${showGraph ? 'bg-blue-50 text-blue-700 border-blue-100' : 'hover:bg-slate-100 text-slate-600'}`}
-                    >
-                        <Share2 size={16} /> <span className="hidden sm:inline">Graph View</span>
-                    </button>
-                    <button 
-                        onClick={() => activeNoteId && handleDeleteNote(activeNoteId)}
-                        className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors"
-                        title="ลบโน้ต"
-                        disabled={!activeNoteId}
-                    >
-                        <Trash2 size={18} />
-                    </button>
-                    
-                    {!isOfflineMode && (
-                        <button 
-                            onClick={handleSignOut}
-                            className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-md transition-colors ml-1"
-                            title="ออกจากระบบ"
-                        >
-                            <LogOut size={18} />
-                        </button>
-                    )}
-                  </div>
-                </div>
-
-                {/* Workspace Area */}
-                <div className={`flex-1 overflow-y-auto ${showGraph ? 'overflow-x-auto' : ''} transition-all duration-300 relative flex flex-col md:flex-row bg-slate-50/50`}>
-                    
-                    {/* Editor Container */}
-                    <div className={`flex-shrink-0 transition-all duration-300 ${showGraph ? 'w-full md:w-1/2' : 'w-full'}`}>
-                        <div className={`mx-auto px-6 py-8 md:py-12 min-h-full bg-white shadow-sm my-0 md:my-4 md:rounded-xl md:min-h-[95%] relative ${showGraph ? 'min-w-[700px] max-w-4xl' : 'max-w-4xl'}`}>
-                            {activeNote ? (
-                                <div className="animate-fade-in flex flex-col h-full">
-                                    
-                                    {/* Toolbar: Tools & Colors */}
-                                    <div className="sticky top-0 z-40 flex flex-col items-center gap-2 mb-6 pointer-events-none">
-                                        {/* Tool Selector */}
-                                        <div className="bg-white/90 backdrop-blur border border-slate-200 shadow-sm p-1 rounded-full flex gap-1 pointer-events-auto">
-                                            <button 
-                                                onClick={() => setToolMode('cursor')}
-                                                className={`px-4 py-1.5 rounded-full text-sm font-medium flex items-center gap-2 transition-all ${toolMode === 'cursor' ? 'bg-slate-800 text-white shadow-md' : 'text-slate-500 hover:bg-slate-100'}`}
-                                                title="โหมดพิมพ์ (Cursor) - เปลี่ยนสีข้อความได้"
-                                            >
-                                                <MousePointer2 size={16} /> <span className="hidden sm:inline">Type</span>
-                                            </button>
-                                            <button 
-                                                onClick={() => setToolMode('pen')}
-                                                className={`px-4 py-1.5 rounded-full text-sm font-medium flex items-center gap-2 transition-all ${toolMode === 'pen' ? 'bg-red-500 text-white shadow-md' : 'text-slate-500 hover:bg-slate-100'}`}
-                                                title="โหมดเขียน (Pen) - เปลี่ยนสีปากกาได้"
-                                            >
-                                                <PenTool size={16} /> <span className="hidden sm:inline">Draw</span>
-                                            </button>
+                        <div className="flex flex-col lg:flex-row gap-6 items-start">
+                            <div className="w-full lg:w-80 flex-shrink-0 space-y-6 lg:sticky lg:top-4">
+                                <CalendarWidget notebooks={notebooks} selectedDate={selectedDate} onSelectDate={onSelectDate} />
+                            </div>
+                            <div className="flex-1 w-full">
+                                {isCreating && (
+                                    <form onSubmit={handleCreate} className="mb-6 p-6 bg-white rounded-xl shadow-lg border border-blue-100 animate-in fade-in slide-in-from-top-4">
+                                        <h3 className="font-bold text-gray-700 mb-4">สร้างสมุดเล่มใหม่</h3>
+                                        <div className="space-y-4">
+                                            <div><label className="block text-sm font-medium text-gray-700 mb-1">ชื่อสมุด</label><input autoFocus type="text" value={newBookName} onChange={(e) => setNewBookName(e.target.value)} className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" /></div>
+                                            <div><label className="block text-sm font-medium text-gray-700 mb-1">วันที่สร้าง</label><div className="flex items-center gap-2"><CalendarIcon className="w-5 h-5 text-gray-500" /><input type="date" value={newBookDate} onChange={(e) => setNewBookDate(e.target.value)} className="p-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none flex-1" /></div></div>
+                                            <div className="flex gap-2 pt-2"><button type="submit" className="bg-blue-600 text-white px-6 py-2 rounded-lg flex-1">สร้าง</button><button type="button" onClick={() => setIsCreating(false)} className="bg-gray-200 text-gray-700 px-6 py-2 rounded-lg">ยกเลิก</button></div>
                                         </div>
-
-                                        {/* Color Palette */}
-                                        <div className="bg-white/90 backdrop-blur border border-slate-200 shadow-sm px-3 py-1.5 rounded-full flex items-center gap-2 pointer-events-auto animate-fade-in-up">
-                                            {COLORS.map(color => (
-                                                <button
-                                                    key={color.id}
-                                                    onClick={() => handleColorSelect(color.value)}
-                                                    className={`w-6 h-6 rounded-full border border-slate-200 hover:scale-110 transition-transform ${
-                                                        currentColor === color.value
-                                                         ? 'ring-2 ring-offset-1 ring-blue-500' 
-                                                         : ''
-                                                    }`}
-                                                    style={{ backgroundColor: color.value }}
-                                                    title={`Select ${color.label}`}
-                                                />
-                                            ))}
-                                            
-                                            {/* Separator */}
-                                            <div className="w-px h-4 bg-slate-200 mx-1"></div>
-                                            
-                                            {/* Custom Color Picker */}
-                                            <div className="relative">
-                                                <button
-                                                    onClick={() => colorInputRef.current?.click()}
-                                                    className={`w-6 h-6 rounded-full border border-slate-200 hover:scale-110 transition-transform flex items-center justify-center bg-slate-100 text-slate-500 ${
-                                                        !COLORS.some(c => c.value === currentColor) 
-                                                        ? 'ring-2 ring-offset-1 ring-blue-500' 
-                                                        : ''
-                                                    }`}
-                                                    title="เลือกสีอิสระ"
-                                                    style={{ 
-                                                        backgroundColor: !COLORS.some(c => c.value === currentColor) ? currentColor : undefined,
-                                                        color: !COLORS.some(c => c.value === currentColor) ? '#fff' : undefined 
-                                                    }}
-                                                >
-                                                   <Palette size={12} strokeWidth={2.5} />
-                                                </button>
-                                                <input 
-                                                    ref={colorInputRef}
-                                                    type="color"
-                                                    className="invisible absolute top-0 left-0 w-0 h-0 opacity-0"
-                                                    onChange={(e) => handleColorSelect(e.target.value)}
-                                                    value={currentColor}
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Title Input */}
-                                    <input 
-                                        type="text" 
-                                        value={activeNote.title}
-                                        onChange={(e) => handleUpdateNote('title', e.target.value)}
-                                        placeholder="Note Title"
-                                        className="text-3xl md:text-4xl font-bold w-full mb-6 bg-transparent border-none focus:outline-none placeholder-slate-300 text-slate-800 flex-shrink-0 relative z-30"
-                                    />
-                                    
-                                    {/* HYBRID EDITOR AREA */}
-                                    <div className="relative w-full min-h-[500px] flex-1">
-                                        
-                                        {/* 1. Drawing Layer (Top) */}
-                                        <div className={`absolute inset-0 z-20 transition-all ${toolMode === 'pen' ? 'pointer-events-auto' : 'pointer-events-none'}`}>
-                                            <DrawingCanvas 
-                                                key={activeNote.id} 
-                                                initialData={activeNote.drawing}
-                                                onSave={(data) => handleUpdateNote('drawing', data)}
-                                                className="w-full h-full"
-                                                isPointerActive={toolMode === 'pen'}
-                                                penColor={penColor}
-                                            />
-                                        </div>
-
-                                        {/* 2. Text Layer (Bottom) */}
-                                        <textarea
-                                            ref={textareaRef}
-                                            value={activeNote.content || ''}
-                                            onChange={(e) => handleUpdateNote('content', e.target.value)}
-                                            placeholder="เริ่มเขียนข้อความ... (สลับโหมดด้านบนเพื่อวาดทับ)"
-                                            className="w-full h-full min-h-[500px] resize-none bg-transparent border-none focus:outline-none text-base md:text-lg leading-relaxed placeholder-slate-300 font-light relative z-10 overflow-hidden"
-                                            style={{ 
-                                                lineHeight: '1.8',
-                                                color: activeNote.textColor || '#1e293b' // Apply Text Color
-                                            }}
-                                        />
-                                        
-                                    </div>
-
-                                    {/* Backlinks (Footer) */}
-                                    {backlinks.length > 0 && (
-                                        <div className="mt-12 pt-8 border-t border-slate-100 flex-shrink-0 relative z-30">
-                                            <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-2">
-                                                <Network size={16}/> Linked References
-                                            </h3>
-                                            <div className="grid gap-3">
-                                                {backlinks.map(link => (
-                                                    <div 
-                                                        key={link.id}
-                                                        onClick={() => setActiveNoteId(link.id)}
-                                                        className="p-4 rounded-lg bg-slate-50 border border-slate-200 hover:border-blue-300 cursor-pointer transition-all shadow-sm group"
-                                                    >
-                                                        <div className="font-medium text-slate-700 group-hover:text-blue-600 mb-1 flex items-center gap-2">
-                                                            {link.title}
-                                                            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-slate-200 text-slate-500 font-normal">
-                                                                {notebooks.find(nb => nb.id === link.notebookId)?.name}
-                                                            </span>
+                                    </form>
+                                )}
+                                {filteredNotebooks.length === 0 ? (
+                                    <div className="flex flex-col items-center justify-center py-16 bg-white rounded-xl border border-dashed border-gray-300 text-gray-400"><FolderOpen className="w-16 h-16 mb-4 opacity-50" /><p>ไม่พบสมุดโน้ต</p></div>
+                                ) : (
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                                        {filteredNotebooks.map(book => (
+                                            <div key={book.id} onClick={() => onSelectNotebook(book.id)} className="group relative bg-white rounded-xl p-5 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all cursor-pointer border border-gray-100 flex flex-col justify-between h-40">
+                                                <div className="absolute top-0 left-0 w-1.5 h-full bg-blue-500 rounded-l-xl opacity-80" />
+                                                <div>
+                                                    <div className="flex justify-between items-start mb-2 pl-3">
+                                                        <div className="p-2 bg-blue-50 rounded-lg text-blue-600"><Book className="w-5 h-5" /></div>
+                                                        <div className="flex gap-1" onClick={e => e.stopPropagation()}>
+                                                            <button onClick={() => { setEditingId(book.id); setEditName(book.name); }} className="p-1.5 hover:bg-gray-100 rounded text-gray-500"><Edit2 className="w-4 h-4" /></button>
+                                                            <button onClick={() => setDeleteId(book.id)} className="p-1.5 hover:bg-red-50 rounded text-red-500"><Trash2 className="w-4 h-4" /></button>
                                                         </div>
-                                                        <div className="text-sm text-slate-400 line-clamp-2">{link.content}</div>
                                                     </div>
-                                                ))}
+                                                    <div className="pl-3">
+                                                        {editingId === book.id ? (<input autoFocus value={editName} onChange={(e) => setEditName(e.target.value)} onBlur={() => handleRename(book.id)} onKeyDown={(e) => e.key === 'Enter' && handleRename(book.id)} onClick={(e) => e.stopPropagation()} className="w-full p-1 border rounded font-bold" />) : (<h3 className="font-bold text-gray-800 line-clamp-1">{book.name}</h3>)}
+                                                    </div>
+                                                </div>
+                                                <div className="pl-3 mt-auto pt-3 border-t border-gray-50 flex items-center gap-2 text-xs text-gray-400"><Clock className="w-3 h-3" /><span>{book.updatedAt ? new Date(book.updatedAt).toLocaleDateString('th-TH') : '-'}</span></div>
                                             </div>
-                                        </div>
-                                    )}
-                                </div>
-                            ) : (
-                                <div className="flex flex-col items-center justify-center h-full text-slate-300">
-                                    <FileText size={64} className="mb-4 opacity-50" />
-                                    <p>เลือกโน้ตเพื่อเริ่มเขียน</p>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-
-                    {/* Graph Container */}
-                    {showGraph && (
-                        <div className="flex-shrink-0 w-full md:w-1/2 h-[40vh] md:h-full border-t md:border-t-0 md:border-l border-slate-200 bg-slate-50 p-4 shadow-inner z-10 sticky top-0 right-0">
-                            <GraphView notes={filteredNotes} onNodeClick={setActiveNoteId} />
-                            <div className="mt-2 text-center text-xs text-slate-400">
-                                แสดงผลเฉพาะโน้ตในมุมมองปัจจุบัน ({filteredNotes.length} โน้ต)
+                                        ))}
+                                    </div>
+                                )}
                             </div>
                         </div>
-                    )}
-
+                        <ConfirmModal isOpen={!!deleteId} title="ยืนยันการลบ" message="ลบสมุดนี้?" onConfirm={() => { onDeleteNotebook(deleteId); setDeleteId(null); }} onCancel={() => setDeleteId(null)} />
+                    </div>
                 </div>
-              </div>
-            </div>
-          );
-        }
+            );
+        };
 
-        const root = ReactDOM.createRoot(document.getElementById('root'));
+        const App = () => {
+            const [user, setUser] = useState(null);
+            const [authLoading, setAuthLoading] = useState(true);
+            const [view, setView] = useState('dashboard');
+            const [activeNotebookId, setActiveNotebookId] = useState(null);
+            const [notebooks, setNotebooks] = useState([]);
+            const [selectedDate, setSelectedDate] = useState(null);
+            const [items, setItems] = useState([]);
+            const [connections, setConnections] = useState([]);
+            const [history, setHistory] = useState([]);
+            const [historyStep, setHistoryStep] = useState(-1);
+            const [viewport, setViewport] = useState({ x: 0, y: 0, scale: 1 });
+            const [selectedId, setSelectedId] = useState(null);
+            const [interactionMode, setInteractionMode] = useState('select');
+            const [dragging, setDragging] = useState(null);
+            const [editingItem, setEditingItem] = useState(null);
+            const [connectStartId, setConnectStartId] = useState(null);
+            const [currentStroke, setCurrentStroke] = useState(null);
+            const [pinchDistance, setPinchDistance] = useState(null);
+            const [hasLocalData, setHasLocalData] = useState(false);
+            const containerRef = useRef(null);
+
+            useEffect(() => { const unsubscribe = onAuthStateChanged(auth, (u) => { setUser(u); setAuthLoading(false); }); return () => unsubscribe(); }, []);
+
+            useEffect(() => {
+                const localBooks = localStorage.getItem('flowboard-notebooks');
+                const localItems = localStorage.getItem('flowboard-items');
+                if (localBooks || localItems) setHasLocalData(true);
+            }, []);
+
+            useEffect(() => {
+                if (!user) { setNotebooks([]); return; }
+                const notebooksRef = collection(db, 'artifacts', appId, 'users', user.uid, 'notebooks');
+                const unsubscribe = onSnapshot(notebooksRef, (snapshot) => {
+                    const books = snapshot.docs.map(doc => { const data = doc.data(); return { id: doc.id, ...data, createdAt: data.createdAt?.toMillis ? data.createdAt.toMillis() : Date.now(), updatedAt: data.updatedAt?.toMillis ? data.updatedAt.toMillis() : Date.now(), }; });
+                    books.sort((a, b) => b.updatedAt - a.updatedAt); setNotebooks(books);
+                });
+                return () => unsubscribe();
+            }, [user]);
+
+            useEffect(() => {
+                if (!user || !activeNotebookId) { setItems([]); setConnections([]); return; }
+                const canvasDocRef = doc(db, 'artifacts', appId, 'users', user.uid, 'canvas_data', activeNotebookId);
+                const unsubscribe = onSnapshot(canvasDocRef, (docSnap) => {
+                    if (docSnap.exists()) {
+                        const data = docSnap.data(); setItems(data.items || []); setConnections(data.connections || []);
+                        if (history.length === 0) { setHistory([{ items: data.items || [], connections: data.connections || [] }]); setHistoryStep(0); }
+                    } else { setItems([]); setConnections([]); setHistory([]); setHistoryStep(-1); }
+                    setView('canvas');
+                });
+                return () => unsubscribe();
+            }, [user, activeNotebookId]);
+
+            // Immediate Save for critical actions
+            const saveCanvasData = async (newItems, newConnections) => {
+                if (!user || !activeNotebookId) return;
+                try {
+                    const canvasDocRef = doc(db, 'artifacts', appId, 'users', user.uid, 'canvas_data', activeNotebookId);
+                    await setDoc(canvasDocRef, { items: newItems, connections: newConnections, updatedAt: serverTimestamp() });
+                } catch (err) { console.error("Save error:", err); }
+            };
+
+            const saveTimeoutRef = useRef(null);
+            // Minimal debounce mainly for high-freq drag updates to avoid rate limit, but rely on immediate save for edits
+            // Actually, for edits, we call saveCanvasData immediately now. 
+            // We can remove this generic effect to avoid race condition or make it very selective.
+            // Removing generic auto-save on state change to prevent overwrite. We will rely on explicit calls.
+
+            useEffect(() => {
+                const handleKeyDown = (e) => {
+                    if ((e.key === 'Delete' || e.key === 'Backspace') && selectedId && !editingItem) deleteItem(selectedId);
+                    if ((e.ctrlKey || e.metaKey) && e.key === 'z') { if (e.shiftKey) redo(); else undo(); e.preventDefault(); }
+                    if ((e.ctrlKey || e.metaKey) && e.key === 'y') { redo(); e.preventDefault(); }
+                };
+                window.addEventListener('keydown', handleKeyDown);
+                return () => window.removeEventListener('keydown', handleKeyDown);
+            }, [selectedId, editingItem, history, historyStep]);
+
+            const pushToHistory = (newItems, newConnections) => {
+                const newHistory = history.slice(0, historyStep + 1); newHistory.push({ items: newItems, connections: newConnections });
+                if (newHistory.length > 50) newHistory.shift(); setHistory(newHistory); setHistoryStep(newHistory.length - 1);
+            };
+            const undo = () => { if (historyStep > 0) { const prev = history[historyStep - 1]; setItems(prev.items); setConnections(prev.connections); setHistoryStep(historyStep - 1); saveCanvasData(prev.items, prev.connections); } };
+            const redo = () => { if (historyStep < history.length - 1) { const next = history[historyStep + 1]; setItems(next.items); setConnections(next.connections); setHistoryStep(historyStep + 1); saveCanvasData(next.items, next.connections); } };
+
+            const handleCreateNotebook = async (name, customDate) => {
+                if (!user) return;
+                try {
+                    const timestamp = customDate ? Timestamp.fromDate(customDate) : serverTimestamp();
+                    const newBook = { name, createdAt: timestamp, updatedAt: timestamp };
+                    await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'notebooks'), newBook);
+                } catch (err) { console.error("Error creating notebook:", err); }
+            };
+            const handleDeleteNotebook = async (id) => {
+                if (!user) return;
+                try { await deleteDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'notebooks', id)); await deleteDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'canvas_data', id)); if (activeNotebookId === id) { setActiveNotebookId(null); setView('dashboard'); } } catch (err) { console.error("Error deleting:", err); }
+            };
+            const handleRenameNotebook = async (id, newName) => {
+                if (!user) return;
+                try { await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'notebooks', id), { name: newName }, { merge: true }); } catch (err) { console.error("Error renaming:", err); }
+            };
+
+            const handleMigrateData = async () => {
+                if (!user) return;
+                try {
+                    const localBooks = JSON.parse(localStorage.getItem('flowboard-notebooks') || '[]');
+                    for (const nb of localBooks) {
+                        const newBook = { name: nb.name, createdAt: serverTimestamp(), updatedAt: serverTimestamp() };
+                        const docRef = await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'notebooks'), newBook);
+                        const localItems = localStorage.getItem(`flowboard-data-${nb.id}-items`);
+                        const localConns = localStorage.getItem(`flowboard-data-${nb.id}-conns`);
+                        if (localItems) {
+                            await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'canvas_data', docRef.id), {
+                                items: JSON.parse(localItems), connections: localConns ? JSON.parse(localConns) : [], updatedAt: serverTimestamp()
+                            });
+                        }
+                    }
+                    const v1Items = localStorage.getItem('flowboard-items');
+                    if (v1Items && localBooks.length === 0) {
+                        const newBook = { name: "สมุดที่กู้คืน (Legacy)", createdAt: serverTimestamp(), updatedAt: serverTimestamp() };
+                        const docRef = await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'notebooks'), newBook);
+                        const v1Conns = localStorage.getItem('flowboard-connections');
+                        await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'canvas_data', docRef.id), {
+                            items: JSON.parse(v1Items), connections: v1Conns ? JSON.parse(v1Conns) : [], updatedAt: serverTimestamp()
+                        });
+                    }
+                    alert("กู้คืนข้อมูลเรียบร้อยแล้ว!");
+                    setHasLocalData(false);
+                    // localStorage.clear(); // Optional
+                } catch (err) { console.error("Migration error:", err); alert("เกิดข้อผิดพลาดในการกู้คืนข้อมูล"); }
+            };
+
+            const getCanvasCoordinates = (cx, cy) => ({ x: (cx - viewport.x) / viewport.scale, y: (cy - viewport.y) / viewport.scale });
+            const getTouchDistance = (touches) => Math.hypot(touches[0].clientX - touches[1].clientX, touches[0].clientY - touches[1].clientY);
+
+            const handlePointerDown = (e) => {
+                if (e.target === containerRef.current || e.target.tagName === 'SVG' || interactionMode === 'draw') {
+                    if (interactionMode === 'draw') {
+                        const { x, y } = getCanvasCoordinates(e.clientX, e.clientY);
+                        setCurrentStroke([{x, y}]); setSelectedId(null); e.target.setPointerCapture(e.pointerId); return;
+                    }
+                    if (interactionMode === 'pan' || e.button === 1 || e.target === containerRef.current) {
+                        setDragging({ type: 'viewport', startX: e.clientX, startY: e.clientY, initialX: viewport.x, initialY: viewport.y }); setSelectedId(null); e.target.setPointerCapture(e.pointerId); return;
+                    }
+                    setSelectedId(null);
+                }
+            };
+            const handlePointerMove = (e) => {
+                if (interactionMode === 'draw' && currentStroke) { const { x, y } = getCanvasCoordinates(e.clientX, e.clientY); setCurrentStroke(prev => [...prev, {x, y}]); return; }
+                if (!dragging) return;
+                if (dragging.type === 'viewport') { setViewport({ ...viewport, x: dragging.initialX + (e.clientX - dragging.startX), y: dragging.initialY + (e.clientY - dragging.startY) }); }
+                else if (dragging.type === 'item') {
+                    const deltaX = (e.clientX - dragging.startX) / viewport.scale; const deltaY = (e.clientY - dragging.startY) / viewport.scale;
+                    setItems(prev => prev.map(item => item.id === dragging.id ? { ...item, x: dragging.initialItemX + deltaX, y: dragging.initialItemY + deltaY } : item));
+                }
+            };
+            const handlePointerUp = (e) => {
+                if (interactionMode === 'draw' && currentStroke) {
+                    if (currentStroke.length > 2) {
+                        const xs = currentStroke.map(p => p.x), ys = currentStroke.map(p => p.y);
+                        const minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys);
+                        const newItems = [...items, { id: Date.now(), type: 'drawing', x: minX, y: minY, width: Math.max(20, maxX - minX), height: Math.max(20, maxY - minY), points: currentStroke.map(p => ({ x: p.x - minX, y: p.y - minY })), color: '#1e293b' }];
+                        setItems(newItems); pushToHistory(newItems, connections);
+                        saveCanvasData(newItems, connections); 
+                    }
+                    setCurrentStroke(null);
+                }
+                if (dragging?.type === 'item') {
+                    if (Math.abs(dragging.startX - e.clientX) > 5 || Math.abs(dragging.startY - e.clientY) > 5) {
+                        pushToHistory(items, connections);
+                        saveCanvasData(items, connections); 
+                    }
+                }
+                setDragging(null);
+                if (e.target && e.target.releasePointerCapture) e.target.releasePointerCapture(e.pointerId);
+            };
+            const handleTouchStart = (e) => { if (e.touches.length === 2) setPinchDistance(getTouchDistance(e.touches)); };
+            const handleTouchMove = (e) => { if (e.touches.length === 2 && pinchDistance) { const dist = getTouchDistance(e.touches); const scaleFactor = dist / pinchDistance; const newScale = Math.min(Math.max(0.1, viewport.scale * scaleFactor), 3); setViewport(prev => ({...prev, scale: newScale})); setPinchDistance(dist); } };
+            const handleTouchEnd = () => { setPinchDistance(null); };
+            const handleItemPointerDown = (e, item) => {
+                if (interactionMode === 'draw') return;
+                if (interactionMode === 'connect') {
+                    e.stopPropagation();
+                    if (!connectStartId) setConnectStartId(item.id);
+                    else {
+                        if (connectStartId !== item.id) {
+                            const newConn = { id: Date.now().toString(), from: connectStartId, to: item.id, type: 'solid' };
+                            const newConns = [...connections, newConn]; setConnections(newConns); pushToHistory(items, newConns);
+                            saveCanvasData(items, newConns); 
+                        }
+                        setConnectStartId(null); setInteractionMode('select');
+                    }
+                    return;
+                }
+                e.stopPropagation();
+                setDragging({ type: 'item', id: item.id, startX: e.clientX, startY: e.clientY, initialItemX: item.x, initialItemY: item.y });
+                setSelectedId(item.id);
+                e.target.setPointerCapture(e.pointerId);
+            };
+            const handleWheel = (e) => {
+                if (e.ctrlKey) { e.preventDefault(); const newScale = Math.min(Math.max(0.1, viewport.scale - e.deltaY * 0.001), 3); setViewport(prev => ({ ...prev, scale: newScale })); }
+                else if (interactionMode === 'pan') { setViewport(prev => ({ ...prev, x: prev.x - e.deltaX, y: prev.y - e.deltaY })); }
+            };
+
+            const addItem = (type) => {
+                const newItem = { id: Date.now(), type, x: (-viewport.x + window.innerWidth / 2) / viewport.scale - 100, y: (-viewport.y + window.innerHeight / 2) / viewport.scale - 50, width: type === 'note' ? 200 : 250, height: type === 'note' ? 200 : 160, title: type === 'task' ? 'งานใหม่' : '', content: '', color: type === 'task' ? 'bg-gray-500' : 'bg-yellow-200', status: 'todo' };
+                const newItems = [...items, newItem]; setItems(newItems); setSelectedId(newItem.id); pushToHistory(newItems, connections);
+                saveCanvasData(newItems, connections); 
+            };
+            const saveItem = (updated) => { 
+                const newItems = items.map(i => i.id === updated.id ? updated : i); 
+                setItems(newItems); 
+                pushToHistory(newItems, connections); 
+                saveCanvasData(newItems, connections); 
+            };
+            const deleteItem = (id) => { 
+                const newItems = items.filter(i => i.id !== id); 
+                const newConns = connections.filter(c => c.from !== id && c.to !== id); 
+                setItems(newItems); setConnections(newConns); setSelectedId(null); 
+                pushToHistory(newItems, newConns);
+                saveCanvasData(newItems, newConns); 
+            };
+
+            if (authLoading) return <div className="h-screen w-full flex items-center justify-center bg-gray-50"><Loader2 className="w-8 h-8 animate-spin text-blue-600"/></div>;
+            if (!user) return <AuthScreen />;
+
+            if (view === 'dashboard') return <Dashboard user={user} notebooks={notebooks} selectedDate={selectedDate} onSelectDate={(date) => setSelectedDate(selectedDate?.getTime() === date?.getTime() ? null : date)} onSelectNotebook={(id) => setActiveNotebookId(id)} onCreateNotebook={handleCreateNotebook} onDeleteNotebook={handleDeleteNotebook} onRenameNotebook={handleRenameNotebook} onMigrate={handleMigrateData} hasLocalData={hasLocalData} />;
+
+            return (
+                <div className="w-full h-screen overflow-hidden bg-gray-50 text-slate-800 font-sans relative canvas-container">
+                    <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-white/90 backdrop-blur shadow-lg rounded-full px-4 py-2 z-50 flex items-center gap-2 sm:gap-4 border border-gray-200 max-w-[95vw] overflow-x-auto">
+                        <button onClick={() => { setView('dashboard'); setActiveNotebookId(null); }} className="p-2 hover:bg-gray-100 rounded-full text-gray-600 mr-2 flex items-center gap-1"><ArrowLeft className="w-5 h-5" /><span className="text-sm font-medium hidden sm:inline">Back</span></button>
+                        <div className="flex items-center gap-2 mr-2 border-r pr-4 border-gray-300"><Book className="w-5 h-5 text-blue-600" /><span className="font-bold text-gray-700 truncate max-w-[100px] sm:max-w-[150px]">{notebooks.find(n => n.id === activeNotebookId)?.name || 'Untitled'}</span></div>
+                        <div className="flex items-center gap-1 mr-2 border-r pr-2 border-gray-300"><button onClick={undo} disabled={historyStep <= 0} className={`p-2 rounded-lg ${historyStep <= 0 ? 'text-gray-300' : 'text-gray-600 hover:bg-gray-100'}`}><Undo className="w-4 h-4" /></button><button onClick={redo} disabled={historyStep >= history.length - 1} className={`p-2 rounded-lg ${historyStep >= history.length - 1 ? 'text-gray-300' : 'text-gray-600 hover:bg-gray-100'}`}><Redo className="w-4 h-4" /></button></div>
+                        <button onClick={() => addItem('task')} className="flex flex-col items-center group min-w-[40px]"><div className="p-2 rounded-lg group-hover:bg-blue-50 text-blue-600"><Plus className="w-6 h-6" /></div></button>
+                        <button onClick={() => addItem('note')} className="flex flex-col items-center group min-w-[40px]"><div className="p-2 rounded-lg group-hover:bg-yellow-50 text-yellow-500"><StickyNote className="w-6 h-6" /></div></button>
+                        <div className="h-6 w-px bg-gray-300 mx-1"></div>
+                        <button onClick={() => setInteractionMode(interactionMode === 'draw' ? 'select' : 'draw')} className={`flex flex-col items-center group min-w-[40px] ${interactionMode === 'draw' ? 'text-purple-600' : 'text-gray-500'}`}><div className={`p-2 rounded-lg ${interactionMode === 'draw' ? 'bg-purple-100' : 'group-hover:bg-gray-100'}`}><PenTool className="w-6 h-6" /></div></button>
+                        <div className="h-6 w-px bg-gray-300 mx-1"></div>
+                        <button onClick={() => setInteractionMode(interactionMode === 'connect' ? 'select' : 'connect')} className={`flex flex-col items-center group min-w-[40px] ${interactionMode === 'connect' ? 'text-blue-600' : 'text-gray-500'}`}><div className={`p-2 rounded-lg ${interactionMode === 'connect' ? 'bg-blue-100' : 'group-hover:bg-gray-100'}`}><LinkIcon className="w-6 h-6" /></div></button>
+                        <div className="h-6 w-px bg-gray-300 mx-1"></div>
+                        <button onClick={() => setInteractionMode(interactionMode === 'pan' ? 'select' : 'pan')} className={`p-2 rounded-lg ${interactionMode === 'pan' ? 'bg-gray-200' : 'hover:bg-gray-100'}`}><Move className="w-5 h-5" /></button>
+                    </div>
+                    <div className="absolute bottom-6 left-6 bg-white shadow-md rounded-lg p-1 z-50 flex flex-col gap-1 border border-gray-200">
+                        <button onClick={() => zoom(0.1)} className="p-2 hover:bg-gray-100"><ZoomIn className="w-5 h-5" /></button>
+                        <button onClick={() => zoom(-0.1)} className="p-2 hover:bg-gray-100"><ZoomOut className="w-5 h-5" /></button>
+                    </div>
+                    {interactionMode === 'connect' && <div className="absolute top-24 left-1/2 transform -translate-x-1/2 bg-blue-600 text-white px-4 py-2 rounded-full shadow-lg z-50 animate-bounce text-sm">{connectStartId ? "คลิกปลายทาง" : "คลิกต้นทาง"}</div>}
+                    {interactionMode === 'draw' && <div className="absolute top-24 left-1/2 transform -translate-x-1/2 bg-purple-600 text-white px-4 py-2 rounded-full shadow-lg z-50 text-sm">วาดบนกระดานได้เลย</div>}
+                    
+                    <div 
+                        ref={containerRef} 
+                        className={`w-full h-full cursor-${interactionMode === 'pan' || dragging?.type === 'viewport' ? 'grab' : interactionMode === 'draw' ? 'crosshair' : 'default'}`} 
+                        onPointerDown={handlePointerDown} 
+                        onPointerMove={handlePointerMove} 
+                        onPointerUp={handlePointerUp} 
+                        onPointerCancel={handlePointerUp}
+                        onTouchStart={handleTouchStart}
+                        onTouchMove={handleTouchMove}
+                        onTouchEnd={handleTouchEnd}
+                        onWheel={handleWheel} 
+                        style={{ backgroundImage: `radial-gradient(#cbd5e1 1px, transparent 1px)`, backgroundSize: `${20 * viewport.scale}px ${20 * viewport.scale}px`, backgroundPosition: `${viewport.x}px ${viewport.y}px` }}
+                    >
+                        <div style={{ transform: `translate(${viewport.x}px, ${viewport.y}px) scale(${viewport.scale})`, transformOrigin: '0 0', width: '100%', height: '100%' }} className="relative transition-transform duration-75 ease-out">
+                            {currentStroke && <svg className="absolute top-0 left-0 w-full h-full pointer-events-none z-50 overflow-visible"><path d={getSvgPathFromStroke(currentStroke)} stroke="#000" strokeWidth="4" fill="none" strokeLinecap="round" strokeLinejoin="round" opacity="0.6" /></svg>}
+                            <ConnectionLayer connections={connections} items={items} />
+                            {items.map(item => (<CanvasItem key={item.id} item={item} isSelected={selectedId === item.id} onPointerDown={(e) => handleItemPointerDown(e, item)} onSelect={setSelectedId} onDoubleClick={setEditingItem} />))}
+                        </div>
+                    </div>
+                    
+                    <MiniMap items={items} viewport={viewport} setViewport={setViewport} />
+                    <EditModal item={editingItem} isOpen={!!editingItem} onClose={() => setEditingItem(null)} onSave={saveItem} onDelete={deleteItem} />
+                </div>
+            );
+        };
+
+        const root = createRoot(document.getElementById('root'));
         root.render(<App />);
     </script>
 </body>
