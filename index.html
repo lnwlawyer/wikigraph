@@ -68,7 +68,7 @@
             Clock, AlertCircle, ArrowLeft, Book, MoreVertical, Edit2, 
             FolderOpen, PenTool, Undo, Redo, Calendar as CalendarIcon, 
             ChevronLeft, ChevronRight, Filter, LogOut, User, Loader2, Mail,
-            DownloadCloud
+            DownloadCloud, Smartphone
         } from 'lucide-react';
 
         import { initializeApp } from 'firebase/app';
@@ -103,6 +103,25 @@
             const [password, setPassword] = useState('');
             const [error, setError] = useState('');
             const [loading, setLoading] = useState(false);
+            const [deferredPrompt, setDeferredPrompt] = useState(null);
+
+            useEffect(() => {
+                const handler = (e) => {
+                    e.preventDefault();
+                    setDeferredPrompt(e);
+                };
+                window.addEventListener('beforeinstallprompt', handler);
+                return () => window.removeEventListener('beforeinstallprompt', handler);
+            }, []);
+
+            const handleInstallClick = async () => {
+                if (!deferredPrompt) return;
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                if (outcome === 'accepted') {
+                    setDeferredPrompt(null);
+                }
+            };
 
             const handleGoogleLogin = async () => { setLoading(true); setError(''); try { await signInWithPopup(auth, new GoogleAuthProvider()); } catch (err) { setError(err.message); setLoading(false); } };
             const handleEmailAuth = async (e) => { e.preventDefault(); setLoading(true); setError(''); try { if (isLogin) await signInWithEmailAndPassword(auth, email, password); else await createUserWithEmailAndPassword(auth, email, password); } catch (err) { setError(err.message); setLoading(false); } };
@@ -119,6 +138,13 @@
                         </form>
                         <div className="relative my-6"><div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-200"></div></div><div className="relative flex justify-center text-sm"><span className="px-2 bg-white text-gray-500">หรือ</span></div></div>
                         <button onClick={handleGoogleLogin} disabled={loading} className="w-full bg-white border border-gray-300 text-gray-700 py-3 rounded-xl font-bold hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"><span className="text-xl font-bold text-blue-600">G</span> ดำเนินการต่อด้วย Google</button>
+                        
+                        {deferredPrompt && (
+                            <button onClick={handleInstallClick} className="w-full mt-4 bg-indigo-50 text-indigo-700 border border-indigo-100 py-3 rounded-xl font-bold hover:bg-indigo-100 transition-colors flex items-center justify-center gap-2">
+                                <Smartphone className="w-5 h-5" /> ติดตั้งแอป FlowBoard
+                            </button>
+                        )}
+
                         <p className="mt-6 text-center text-sm text-gray-600">{isLogin ? "ยังไม่มีบัญชี?" : "มีบัญชีอยู่แล้ว?"}<button onClick={() => setIsLogin(!isLogin)} className="ml-1 text-blue-600 font-bold hover:underline">{isLogin ? "สมัครสมาชิก" : "เข้าสู่ระบบ"}</button></p>
                     </div>
                 </div>
