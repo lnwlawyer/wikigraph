@@ -8,14 +8,15 @@
   "orientation": "any",
   "icons": [
     {
-      "src": "https://live.staticflickr.com/65535/54706797821_2d5dc29827_w.jpg",
+      "src": "https://live.staticflickr.com/65535/54707259194_d205400eeb_w.jpg",
       "sizes": "192x192",
       "type": "image/jpeg"
     },
     {
-      "src": "https://live.staticflickr.com/65535/54706797821_2d5dc29827_w.jpg",
+      "src": "https://live.staticflickr.com/65535/54707259194_d205400eeb_w.jpg",
       "sizes": "512x512",
       "type": "image/jpeg"
     }
   ]
 }
+
